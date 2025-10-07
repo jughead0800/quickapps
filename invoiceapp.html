@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Invoice Generator — Dark</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #121821;
+      --panel-2: #0f141b;
+      --text: #e6edf3;
+      --muted: #9fb0c0;
+      --accent: #5ec3ff;
+      --accent-2: #8b5cff;
+      --danger: #ff6b6b;
+      --ok: #7cf29c;
+      --border: #1f2a37;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text); background: radial-gradient(1200px 800px at 20% -10%, #13202e 0%, var(--bg) 55%);
+    }
+    a { color: var(--accent); text-decoration: none; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom: 16px; }
+    .brand { display:flex; align-items:center; gap:12px; }
+    .logo { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 6px 24px rgba(94,195,255,.35); }
+    h1 { font-size: 18px; margin: 0; letter-spacing:.3px; }
+    nav { display:flex; gap:8px; }
+    .tab-btn { border:1px solid var(--border); background: linear-gradient(180deg, #161e28, #0e141b); color: var(--text); padding: 10px 14px; border-radius: 12px; cursor: pointer; font-weight: 600; }
+    .tab-btn.active { outline: 2px solid rgba(94,195,255,.45); background: linear-gradient(180deg, #1a2430, #111923); }
+    .panel { background: linear-gradient(180deg, var(--panel), var(--panel-2)); border:1px solid var(--border); border-radius: 16px; padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+
+    .grid { display:grid; gap:12px; grid-template-columns: repeat(12, 1fr); }
+    .col-6 { grid-column: span 6; }
+    .col-4 { grid-column: span 4; }
+    .col-3 { grid-column: span 3; }
+    .col-8 { grid-column: span 8; }
+    .col-12 { grid-column: span 12; }
+
+    label { font-size: 12px; color: var(--muted); display:block; margin-bottom:6px; }
+    input[type="text"], input[type="number"], input[type="date"], textarea {
+      width: 100%; background: #0c1219; color: var(--text); border:1px solid var(--border); border-radius: 10px; padding: 10px 12px; outline: none;
+    }
+    input[type="checkbox"] { transform: scale(1.2); accent-color: var(--accent); }
+    textarea { min-height: 84px; resize: vertical; }
+
+    .btn { appearance: none; border:1px solid var(--border); background: #0e151d; color: var(--text); padding: 10px 14px; border-radius: 12px; cursor: pointer; font-weight: 600; }
+    .btn:hover { filter: brightness(1.1); }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #2aa4f4); border: none; color: #04121b; }
+    .btn-outline { background: transparent; }
+    .btn-danger { background: linear-gradient(135deg, #ff8484, #ff6b6b); border: none; color: #360c0c; }
+
+    .toolbar { display:flex; flex-wrap: wrap; gap: 10px; align-items:center; justify-content: space-between; margin: 8px 0 16px; }
+    .toolbar .group { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th { text-align:left; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border); padding: 8px; font-weight: 600; }
+    tbody td { border-bottom: 1px dashed var(--border); padding: 6px 8px; vertical-align: top; }
+    tbody tr:hover { background: rgba(255,255,255,.02); }
+
+    .num { text-align: right; }
+    .totals { display:grid; grid-template-columns: 1fr auto; gap:10px; max-width: 420px; margin-left: auto; }
+    .totals div { display: contents; }
+    .totals .label { color: var(--muted); padding: 6px 0; }
+    .totals .value { text-align:right; padding: 6px 0; font-weight: 700; }
+    .totals .grand { font-size: 20px; color: var(--ok); padding-top: 8px; border-top: 1px solid var(--border); margin-top: 6px; }
+
+    .invoice-header { display:grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 12px; }
+    .business-card { padding: 12px; border:1px dashed var(--border); border-radius: 12px; }
+
+    .hint { font-size: 12px; color: var(--muted); }
+
+    /* PRINT STYLES */
+    @media print {
+      :root { color-scheme: light; }
+body { background: white; }
+      header, .toolbar, nav { display: none !important; }
+      .wrap { padding: 0; }
+      .panel { border: none; border-radius: 0; box-shadow: none; padding: 0; }
+      .print-area { padding: 24px; }
+      .business-card { border: none; }
+      input, textarea { border: none; padding: 0; background: transparent; }
+      table thead th, table tbody td { border-color: #ddd; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <h1>Invoice Generator</h1>
+      </div>
+      <nav>
+        <button class="tab-btn active" id="tab-invoice" onclick="switchTab('invoice')">Invoice</button>
+        <button class="tab-btn" id="tab-settings" onclick="switchTab('settings')">Settings</button>
+      </nav>
+    </header>
+
+    <!-- INVOICE VIEW -->
+    <section id="view-invoice" class="panel">
+      <div class="toolbar">
+        <div class="group">
+          <button class="btn" onclick="addLine()">+ Add line</button>
+          <button class="btn btn-outline" onclick="clearLines()">Clear lines</button>
+        </div>
+        <div class="group">
+          <button class="btn" onclick="saveDraft()">Save draft</button>
+          <button class="btn" onclick="openPrintView()">Open Print View</button>
+          <button class="btn btn-primary" onclick="generatePDF()">Download PDF</button>
+        </div>
+      </div>
+
+      <div id="print-root" class="print-area">
+        <div class="invoice-header">
+          <div class="business-card" id="businessCard">
+            <div style="font-weight:800; font-size:18px; margin-bottom:6px" id="bizName">Your Business Name</div>
+            <div id="bizAddress" class="hint">Address…</div>
+            <div id="bizContact" class="hint">Email • Phone</div>
+            <div id="bizBank" class="hint">Bank • BSB • Account</div>
+            <div id="bizABN" class="hint">ABN</div>
+          </div>
+          <div class="grid">
+            <div class="col-6">
+              <label>Invoice #</label>
+              <input type="text" id="invoiceNumber" />
+            </div>
+            <div class="col-6">
+              <label>Date</label>
+              <input type="text" id="invoiceDate" placeholder="YYYY-MM-DD" />
+            </div>
+            <div class="col-6">
+              <label>Due Date</label>
+              <input type="text" id="dueDate" placeholder="YYYY-MM-DD" />
+            </div>
+          </div>
+        </div>
+
+        <div class="grid" style="margin: 12px 0 18px;">
+          <div class="col-6">
+            <label>Bill To (Name)</label>
+            <input type="text" id="clientName" placeholder="Client or Company" />
+          </div>
+          <div class="col-6">
+            <label>Bill To (Email)</label>
+            <input type="text" id="clientEmail" placeholder="email@example.com" />
+          </div>
+          <div class="col-12">
+            <label>Bill To (Address)</label>
+            <input type="text" id="clientAddress" placeholder="Address" />
+          </div>
+        </div>
+
+        <table id="itemsTable">
+          <thead>
+            <tr>
+              <th style="width:48%">Description</th>
+              <th style="width:12%" class="num">Qty</th>
+              <th style="width:20%" class="num">Unit Price</th>
+              <th style="width:20%" class="num">Amount</th>
+              <th style="width:40px"></th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+
+        <div class="grid" style="margin-top:14px; align-items: start;">
+          <div class="col-8">
+            <label>Notes / Terms</label>
+            <textarea id="notes" placeholder="Thanks for your business! Payment due by the due date to the bank account above."></textarea>
+          </div>
+          <div class="col-4">
+            <div class="totals">
+              <div class="label">Subtotal</div>
+              <div class="value" id="subtotal">$0.00</div>
+              <div class="label" id="taxLabel">Tax (<span id="taxRateLabel">0%</span>)</div>
+              <div class="value" id="tax">$0.00</div>
+              <br>
+              <div class="label grand">Total</div>
+              <div class="value grand" id="grandTotal">$0.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS VIEW -->
+    <section id="view-settings" class="panel" style="display:none">
+      <div class="grid">
+        <div class="col-6">
+          <label>Business Name</label>
+          <input type="text" id="sBizName" placeholder="True Frontier Pty Ltd" />
+        </div>
+        <div class="col-6">
+          <label>ABN (optional)</label>
+          <input type="text" id="sABN" placeholder="12 345 678 901" />
+        </div>
+        <div class="col-12">
+          <label>Address</label>
+          <input type="text" id="sAddress" placeholder="58 Gawler Place, Adelaide SA 5000" />
+        </div>
+        <div class="col-6">
+          <label>Contact Email</label>
+          <input type="text" id="sEmail" placeholder="accounts@example.com" />
+        </div>
+        <div class="col-6">
+          <label>Phone</label>
+          <input type="text" id="sPhone" placeholder="(+61) 4xx xxx xxx" />
+        </div>
+        <div class="col-4">
+          <label>Bank</label>
+          <input type="text" id="sBank" placeholder="Bank Name" />
+        </div>
+        <div class="col-4">
+          <label>BSB</label>
+          <input type="text" id="sBSB" placeholder="123-456" />
+        </div>
+        <div class="col-4">
+          <label>Account #</label>
+          <input type="text" id="sAccount" placeholder="12345678" />
+        </div>
+        <div class="col-3">
+          <label>Tax Rate %</label>
+          <input type="number" id="sTaxRate" value="0" step="0.01" />
+        </div>
+        <div class="col-3">
+          <label>Tax applicable</label>
+          <input type="checkbox" id="sTaxEnabled" checked />
+        </div>
+        <div class="col-3">
+          <label>Currency Symbol</label>
+          <input type="text" id="sCurrency" value="$" maxlength="4" />
+        </div>
+        <div class="col-3">
+          <label>Next Invoice #</label>
+          <input type="text" id="sNextNumber" value="1001" />
+        </div>
+        <div class="col-3">
+          <label>Default Due (days)</label>
+          <input type="number" id="sDueDays" value="14" />
+        </div>
+        <div class="col-12" style="margin-top:10px; display:flex; gap:8px;">
+          <button class="btn" onclick="loadSettingsIntoForm()">Reset</button>
+          <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:10px;">Settings are stored locally in your browser (localStorage). They never leave your device.</p>
+    </section>
+  </div>
+
+  <script>
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+    function switchTab(which){
+      const inv = $('#view-invoice'), set = $('#view-settings');
+      $('#tab-invoice').classList.toggle('active', which==='invoice');
+      $('#tab-settings').classList.toggle('active', which==='settings');
+      inv.style.display = which==='invoice' ? '' : 'none';
+      set.style.display = which==='settings' ? '' : 'none';
+    }
+
+    // SETTINGS: load & save
+    const STORAGE_KEY = 'invoice.settings.v2';
+    const DRAFT_KEY = 'invoice.draft.v2';
+
+    function loadSettings(){
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+    }
+    function saveSettings(){
+      const s = {
+        bizName: $('#sBizName').value.trim(),
+        abn: $('#sABN').value.trim(),
+        address: $('#sAddress').value.trim(),
+        email: $('#sEmail').value.trim(),
+        phone: $('#sPhone').value.trim(),
+        bank: $('#sBank').value.trim(), bsb: $('#sBSB').value.trim(), account: $('#sAccount').value.trim(),
+        taxRate: parseFloat($('#sTaxRate').value || '0'),
+        taxEnabled: $('#sTaxEnabled').checked,
+        currency: $('#sCurrency').value || '$',
+        nextNumber: $('#sNextNumber').value.trim() || '1001',
+        dueDays: parseInt($('#sDueDays').value || '14', 10)
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+      hydrateBusinessCard();
+      $('#taxRateLabel').textContent = (s.taxRate || 0) + '%';
+      updateTaxVisibility();
+      recompute();
+      alert('Settings saved.');
+    }
+    function loadSettingsIntoForm(){
+      const s = loadSettings();
+      $('#sBizName').value = s.bizName || '';
+      $('#sABN').value = s.abn || '';
+      $('#sAddress').value = s.address || '';
+      $('#sEmail').value = s.email || '';
+      $('#sPhone').value = s.phone || '';
+      $('#sBank').value = s.bank || '';
+      $('#sBSB').value = s.bsb || '';
+      $('#sAccount').value = s.account || '';
+      $('#sTaxRate').value = s.taxRate ?? 0;
+      $('#sTaxEnabled').checked = (s.taxEnabled ?? true);
+      $('#sCurrency').value = s.currency || '$';
+      $('#sNextNumber').value = s.nextNumber || '1001';
+      $('#sDueDays').value = s.dueDays ?? 14;
+      updateTaxVisibility();
+    }
+
+    function hydrateBusinessCard(){
+      const s = loadSettings();
+      $('#bizName').textContent = s.bizName || 'Your Business Name';
+      $('#bizAddress').textContent = s.address || 'Address…';
+      const contactBits = [s.email, s.phone].filter(Boolean).join(' • ');
+      $('#bizContact').textContent = contactBits || 'Email • Phone';
+      const bankBits = [s.bank, s.bsb, s.account].filter(Boolean).join(' • ');
+      $('#bizBank').textContent = bankBits || 'Bank • BSB • Account';
+      $('#bizABN').textContent = s.abn ? `ABN ${s.abn}` : '';
+      $('#taxRateLabel').textContent = (s.taxRate || 0) + '%';
+      updateTaxVisibility();
+    }
+
+    // Show/hide tax row depending on settings
+    function updateTaxVisibility(){
+      const s = loadSettings();
+      const show = (s.taxEnabled ?? true);
+      const taxLabel = $('#taxLabel');
+      const taxVal = $('#tax');
+      if (taxLabel) taxLabel.style.display = show ? '' : 'none';
+      if (taxVal) taxVal.style.display = show ? '' : 'none';
+    }
+
+    // INVOICE interactions
+    function formatMoney(n){
+      const s = loadSettings();
+      const sym = s.currency || '$';
+      const val = (isFinite(n) ? n : 0).toFixed(2);
+      return `${sym}${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    function recompute(){
+      let subtotal = 0;
+      $$('#itemsBody tr').forEach(row => {
+        const qty = parseFloat(row.querySelector('.qty').value || '0');
+        const price = parseFloat(row.querySelector('.price').value || '0');
+        const amt = qty * price;
+        subtotal += amt;
+        row.querySelector('.amount').textContent = formatMoney(amt);
+      });
+      const s = loadSettings();
+      const taxEnabled = (s.taxEnabled ?? true);
+      const taxRate = taxEnabled ? (parseFloat(s.taxRate || 0) / 100) : 0;
+      const tax = subtotal * taxRate;
+      const grand = subtotal + tax;
+      $('#subtotal').textContent = formatMoney(subtotal);
+      $('#tax').textContent = formatMoney(taxEnabled ? tax : 0);
+      $('#grandTotal').textContent = formatMoney(grand);
+      updateTaxVisibility();
+    }
+
+    function addLine(data={}){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" class="desc" placeholder="Description" value="${data.desc||''}"></td>
+        <td class="num"><input type="number" step="0.01" class="qty" value="${data.qty||''}"></td>
+        <td class="num"><input type="number" step="0.01" class="price" value="${data.price||''}"></td>
+        <td class="num amount">$0.00</td>
+        <td class="num"><button class="btn btn-danger" title="Remove" onclick="this.closest('tr').remove(); recompute();">×</button></td>
+      `;
+      $('#itemsBody').appendChild(tr);
+      tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', recompute));
+      recompute();
+    }
+
+    function clearLines(){
+      if(!confirm('Remove all line items?')) return;
+      $('#itemsBody').innerHTML = '';
+      recompute();
+    }
+
+    function setDates(){
+      const s = loadSettings();
+      const today = new Date();
+      const due = new Date();
+      due.setDate(today.getDate() + (s.dueDays ?? 14));
+      $('#invoiceDate').value = today.toISOString().slice(0,10);
+      $('#dueDate').value = due.toISOString().slice(0,10);
+    }
+
+    function ensureInvoiceNumber(){
+      const s = loadSettings();
+      const current = $('#invoiceNumber').value.trim();
+      if(!current){
+        $('#invoiceNumber').value = s.nextNumber || '1001';
+      }
+    }
+
+    function incrementInvoiceNumber(){
+      const s = loadSettings();
+      const n = $('#invoiceNumber').value.trim();
+      const parsed = parseInt(n, 10);
+      if(!isNaN(parsed)){
+        s.nextNumber = String(parsed + 1);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+      }
+    }
+
+    function saveDraft(){
+      const data = serializeInvoice();
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+      alert('Draft saved.');
+    }
+
+    function loadDraft(){
+      try { var d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch { d = null; }
+      if(!d) return;
+      $('#invoiceNumber').value = d.invoiceNumber || '';
+      $('#invoiceDate').value = d.invoiceDate || '';
+      $('#dueDate').value = d.dueDate || '';
+      $('#clientName').value = d.clientName || '';
+      $('#clientEmail').value = d.clientEmail || '';
+      $('#clientAddress').value = d.clientAddress || '';
+      $('#notes').value = d.notes || '';
+      $('#itemsBody').innerHTML = '';
+      (d.items||[]).forEach(addLine);
+      recompute();
+    }
+
+    function serializeInvoice(){
+      const items = $$('#itemsBody tr').map(tr => ({
+        desc: tr.querySelector('.desc').value,
+        qty: parseFloat(tr.querySelector('.qty').value||'0'),
+        price: parseFloat(tr.querySelector('.price').value||'0')
+      }));
+      return {
+        invoiceNumber: $('#invoiceNumber').value.trim(),
+        invoiceDate: $('#invoiceDate').value,
+        dueDate: $('#dueDate').value,
+        clientName: $('#clientName').value.trim(),
+        clientEmail: $('#clientEmail').value.trim(),
+        clientAddress: $('#clientAddress').value.trim(),
+        notes: $('#notes').value,
+        items
+      };
+    }
+
+    function generatePDF(){
+      ensureInvoiceNumber();
+      recompute();
+      window.print();
+      incrementInvoiceNumber();
+    }
+
+    function openPrintView(){
+      const s = loadSettings();
+      const inv = serializeInvoice();
+      // Correct HTML escape helper (fixed regex)
+      const esc = (str) => String(str||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      // compute totals
+      let subtotal = 0;
+      const rows = (inv.items||[]).map((it)=>{
+        const qty = Number(isFinite(it.qty)? it.qty : 0);
+        const price = Number(isFinite(it.price)? it.price : 0);
+        const amt = qty * price; subtotal += amt;
+        return `<tr>
+            <td>${esc(it.desc)}</td>
+            <td class="num">${qty || ''}</td>
+            <td class="num">${esc(formatMoney(price))}</td>
+            <td class="num">${esc(formatMoney(amt))}</td>
+          </tr>`;
+      }).join('');
+      const taxEnabled = (s.taxEnabled ?? true);
+      const tax = taxEnabled ? subtotal * (parseFloat(s.taxRate||0)/100) : 0;
+      const grand = subtotal + tax;
+
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice ${esc(inv.invoiceNumber||'')}</title>
+        <style>
+          @page { size: A4; margin: 14mm; }
+          body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; color:#111; background:#fff; }
+          .wrap { max-width: 800px; margin: 0 auto; }
+          h1 { font-size: 22px; margin: 0 0 8px; }
+          .muted { color:#666; }
+          .grid { display:grid; grid-template-columns: 2fr 1fr; gap:16px; }
+          .box { padding: 10px 0; }
+          table { width:100%; border-collapse: collapse; margin-top: 10px; }
+          thead th { text-align:left; font-weight:700; font-size:12px; border-bottom:1px solid #ddd; padding:6px 4px; }
+          tbody td { border-bottom:1px solid #eee; padding:6px 4px; vertical-align: top; }
+          .num { text-align:right; }
+          .totals { margin-left:auto; width:340px; }
+          .totals table td { border:none; padding:4px 0; }
+          .grand { font-weight:800; border-top:1px solid #ccc; padding-top:6px; font-size:16px; }
+          .sm { font-size:12px; }
+        </style>
+      </head><body><div class="wrap">
+        <div class="grid">
+          <div class="box">
+            <h1>${esc(s.bizName || 'Invoice')}</h1>
+            <div class="sm muted">${esc(s.address || '')}</div>
+            <div class="sm muted">${[s.email,s.phone].filter(Boolean).map(esc).join(' • ')}</div>
+            <div class="sm muted">${[s.bank,s.bsb,s.account].filter(Boolean).map(esc).join(' • ')}</div>
+            <div class="sm muted">${s.abn? 'ABN ' + esc(s.abn): ''}</div>
+          </div>
+          <div class="box">
+            <table class="sm">
+              <tr><td>Invoice #</td><td class="num"><b>${esc(inv.invoiceNumber||'')}</b></td></tr>
+              <tr><td>Date</td><td class="num">${esc(inv.invoiceDate||'')}</td></tr>
+              <tr><td>Due Date</td><td class="num">${esc(inv.dueDate||'')}</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="box sm">
+          <b>Bill To</b>
+          <div>${esc(inv.clientName||'')}</div>
+          <div class="muted">${esc(inv.clientEmail||'')}</div>
+          <div class="muted">${esc(inv.clientAddress||'')}</div>
+        </div>
+
+        <table>
+          <thead><tr>
+            <th>Description</th>
+            <th class="num" style="width:12%">Qty</th>
+            <th class="num" style="width:20%">Unit Price</th>
+            <th class="num" style="width:20%">Amount</th>
+          </tr></thead>
+          <tbody>${rows || '<tr><td colspan="4" class="muted">No items</td></tr>'}</tbody>
+        </table>
+
+        <div class="totals">
+          <table>
+            <tr><td>Subtotal</td><td class="num">${esc(formatMoney(subtotal))}</td></tr>
+            ${taxEnabled ? `<tr><td>Tax (${esc(String(s.taxRate||0))}%)</td><td class="num">${esc(formatMoney(tax))}</td></tr>` : ''}
+            <tr><td class="grand">Total</td><td class="num grand">${esc(formatMoney(grand))}</td></tr>
+          </table>
+        </div>
+
+        <div class="box sm"><b>Notes / Terms</b><div class="muted">${esc(inv.notes||'')}</div></div>
+      </div></body></html>`;
+
+      const w = window.open('', '_blank');
+      if(!w){ alert('Popup blocked. Please allow popups for this site.'); return; }
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+    }
+
+    // (print mirror utilities removed as dates are now free text) 
+
+    // INIT
+    function init(){
+      hydrateBusinessCard();
+      loadSettingsIntoForm();
+      // Populate new invoice defaults
+      setDates();
+      ensureInvoiceNumber();
+      // Add a starter line
+      if($('#itemsBody').children.length === 0){ addLine({ desc: '', qty: 1, price: 0 }); }
+      // Wire recompute on blur changes
+      $$('#print-root input, #print-root textarea').forEach(el => el.addEventListener('input', recompute));
+      updateTaxVisibility();
+      recompute();
+      // Try to load draft silently
+      loadDraft();
+    }
+    init();
+  </script>
+</body>
+</html>
