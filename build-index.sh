@@ -1,15 +1,15 @@
 #!/bin/sh
 # Build script to generate index.html from apps in the apps folder
+# Uses only basic POSIX shell commands - no external dependencies
 
 APPS_DIR="apps"
 OUTPUT_FILE="index.html"
-ICONS='{"file-compare.html":"🔍","invoiceapp.html":"📄","Recipt Calc.html":"📋"}'
-DESCRIPTIONS='{"file-compare.html":"Compare two files side-by-side with highlighted differences. Calculate SHA256 and MD5 hashes, view file metadata, and navigate large files using an interactive minimap overview.","invoiceapp.html":"Create professional invoices with customizable business details, line items, tax calculations, and payment terms. Export to PDF or print directly from your browser.","Recipt Calc.html":"Track expenses and receipts with an easy-to-use calculator. Add items, edit amounts, and export your data to CSV format for record keeping."}'
 
 # Function to get title from HTML file
 get_title() {
     local file="$1"
-    grep -o '<title>.*</title>' "$file" | sed 's/<title>\(.*\)<\/title>/\1/' | head -1
+    # Use sed to extract title, works with busybox
+    sed -n 's/.*<title>\(.*\)<\/title>.*/\1/p' "$file" | head -n 1
 }
 
 # Function to get icon for app
@@ -20,17 +20,6 @@ get_icon() {
         *invoice*) echo "📄" ;;
         *Recipt*|*receipt*) echo "📋" ;;
         *) echo "📱" ;;
-    esac
-}
-
-# Function to get description for app
-get_description() {
-    local file="$1"
-    case "$file" in
-        *file-compare*) echo "Compare two files side-by-side with highlighted differences. Calculate SHA256 and MD5 hashes, view file metadata, and navigate large files using an interactive minimap overview." ;;
-        *invoice*) echo "Create professional invoices with customizable business details, line items, tax calculations, and payment terms. Export to PDF or print directly from your browser." ;;
-        *Recipt*|*receipt*) echo "Track expenses and receipts with an easy-to-use calculator. Add items, edit amounts, and export your data to CSV format for record keeping." ;;
-        *) echo "A QuickAPP application." ;;
     esac
 }
 
@@ -138,19 +127,14 @@ cat > "$OUTPUT_FILE" << 'EOF'
         .app-card h3 {
             color: #4a9eff;
             font-size: 1.8em;
-            margin-bottom: 15px;
+            margin: 0;
         }
 
         .app-card .app-icon {
             font-size: 3em;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
-        .app-card p {
-            color: #888;
-            font-size: 1em;
-            line-height: 1.6;
-        }
 
         .features {
             background: #1e1e1e;
@@ -304,19 +288,19 @@ EOF
 # Generate app cards
 for app_file in "$APPS_DIR"/*.html; do
     if [ -f "$app_file" ]; then
-        app_name=$(basename "$app_file" .html)
+        # Extract filename without path and extension (works without basename)
+        app_fullname="${app_file##*/}"
+        app_name="${app_fullname%.html}"
         app_title=$(get_title "$app_file")
         app_icon=$(get_icon "$app_name")
-        app_desc=$(get_description "$app_name")
         
         # Clean up title (remove "— Dark" or similar suffixes)
-        app_title=$(echo "$app_title" | sed 's/ — .*$//' | sed 's/ - .*$//')
+        app_title=$(echo "$app_title" | sed 's/ — .*$//; s/ - .*$//')
         
         cat >> "$OUTPUT_FILE" << EOF
-            <a href="apps/$app_name.html" target="_blank" class="app-card">
+            <a href="apps/$app_fullname" target="_blank" class="app-card">
                 <div class="app-icon">$app_icon</div>
                 <h3>$app_title</h3>
-                <p>$app_desc</p>
             </a>
 EOF
     fi

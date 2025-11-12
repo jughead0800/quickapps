@@ -144,19 +144,14 @@ $html = @'
         .app-card h3 {
             color: #4a9eff;
             font-size: 1.8em;
-            margin-bottom: 15px;
+            margin: 0;
         }
 
         .app-card .app-icon {
             font-size: 3em;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
-        .app-card p {
-            color: #888;
-            font-size: 1em;
-            line-height: 1.6;
-        }
 
         .features {
             background: #1e1e1e;
@@ -313,13 +308,11 @@ foreach ($appFile in $appFiles) {
     $appName = $appFile.BaseName
     $appTitle = Get-Title -FilePath $appFile.FullName
     $appIcon = Get-Icon -FileName $appName
-    $appDesc = Get-Description -FileName $appName
     
     $html += @"
             <a href="apps/$($appFile.Name)" target="_blank" class="app-card">
                 <div class="app-icon">$appIcon</div>
                 <h3>$appTitle</h3>
-                <p>$appDesc</p>
             </a>
 "@
 }

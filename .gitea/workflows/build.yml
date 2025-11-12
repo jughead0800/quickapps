@@ -19,14 +19,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: apk add --no-cache bash git
+      - name: Install git (for commit/push)
+        run: apk add --no-cache git
 
       - name: Make build script executable
         run: chmod +x build-index.sh
 
       - name: Build index.html
-        run: ./build-index.sh
+        run: sh build-index.sh
 
       - name: Commit and push changes
         run: |
