@@ -19,8 +19,26 @@ jobs:
       - name: Install git
         run: apk add --no-cache git
 
+      - name: List workspace files
+        run: |
+          pwd
+          ls -la
+          if [ -d apps ]; then
+            echo "Apps directory found:"
+            ls -la apps/
+          else
+            echo "Apps directory not found"
+          fi
+
       - name: Make build script executable
-        run: chmod +x build-index.sh
+        run: |
+          if [ -f build-index.sh ]; then
+            chmod +x build-index.sh
+          else
+            echo "build-index.sh not found, listing files:"
+            ls -la
+            exit 1
+          fi
 
       - name: Build index.html
         run: sh build-index.sh
