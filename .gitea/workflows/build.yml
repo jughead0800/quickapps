@@ -19,26 +19,25 @@ jobs:
       - name: Install git
         run: apk add --no-cache git
 
-      - name: List workspace files
+      - name: Checkout repository
         run: |
-          pwd
+          REPO_URL="${{ github.server_url }}/${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          echo "Cloning $REPO_URL (branch: $BRANCH)"
+          git clone --depth 1 --branch "$BRANCH" "$REPO_URL" .
           ls -la
-          if [ -d apps ]; then
-            echo "Apps directory found:"
-            ls -la apps/
-          else
-            echo "Apps directory not found"
-          fi
+          
+      - name: Configure git remote for push
+        run: |
+          TOKEN="${{ secrets.GITHUB_TOKEN }}"
+          SERVER="${{ github.server_url }}"
+          REPO="${{ github.repository }}"
+          # Remove https:// from server URL if present, then add token
+          SERVER_CLEAN="${SERVER#https://}"
+          git remote set-url origin "https://$TOKEN@$SERVER_CLEAN/$REPO"
 
       - name: Make build script executable
-        run: |
-          if [ -f build-index.sh ]; then
-            chmod +x build-index.sh
-          else
-            echo "build-index.sh not found, listing files:"
-            ls -la
-            exit 1
-          fi
+        run: chmod +x build-index.sh
 
       - name: Build index.html
         run: sh build-index.sh
@@ -50,9 +49,9 @@ jobs:
 
       - name: Commit and push changes
         run: |
-          git add index.html || true
+          git add index.html
           if ! git diff --staged --quiet; then
-            git commit -m "Auto-build: Update index.html from apps folder [skip ci]" || true
-            git push || true
+            git commit -m "Auto-build: Update index.html from apps folder [skip ci]"
+            git push
           fi
 
