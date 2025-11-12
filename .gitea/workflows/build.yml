@@ -16,10 +16,7 @@ jobs:
     container:
       image: alpine:latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install git (for commit/push)
+      - name: Install git
         run: apk add --no-cache git
 
       - name: Make build script executable
@@ -28,13 +25,16 @@ jobs:
       - name: Build index.html
         run: sh build-index.sh
 
+      - name: Setup git for commit
+        run: |
+          git config --global user.email "action@gitea.com"
+          git config --global user.name "Gitea Action"
+
       - name: Commit and push changes
         run: |
-          git config --local user.email "action@gitea.com"
-          git config --local user.name "Gitea Action"
-          git add index.html
+          git add index.html || true
           if ! git diff --staged --quiet; then
-            git commit -m "Auto-build: Update index.html from apps folder [skip ci]"
-            git push
+            git commit -m "Auto-build: Update index.html from apps folder [skip ci]" || true
+            git push || true
           fi
 
