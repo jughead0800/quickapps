@@ -1,0 +1,40 @@
+name: Build Index
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/**'
+      - 'build-index.sh'
+      - 'build-index.ps1'
+      - '.gitea/workflows/build.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: apk add --no-cache bash git
+
+      - name: Make build script executable
+        run: chmod +x build-index.sh
+
+      - name: Build index.html
+        run: ./build-index.sh
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@gitea.com"
+          git config --local user.name "Gitea Action"
+          git add index.html
+          if ! git diff --staged --quiet; then
+            git commit -m "Auto-build: Update index.html from apps folder [skip ci]"
+            git push
+          fi
+

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipt Calculator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #4a9eff;
+      margin-bottom: 30px;
+      font-size: 2em;
+    }
+
+    .panel {
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    #totalAmount {
+      font-size: 24px;
+      font-weight: bold;
+      color: #4caf50;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #1e1e1e;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    #itemForm {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+      align-items: flex-end;
+    }
+
+    #itemForm label {
+      flex: 1;
+      min-width: 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: #888;
+      font-size: 0.9em;
+    }
+
+    #itemForm input {
+      background: #1e1e1e;
+      color: #e0e0e0;
+      border: 1px solid #3a3a3a;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 1em;
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+
+    #itemForm input:focus {
+      border-color: #4a9eff;
+    }
+
+    #itemForm button[type="submit"] {
+      background: #4a9eff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      height: fit-content;
+    }
+
+    #itemForm button[type="submit"]:hover {
+      background: #5aaeff;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar button,
+    .toolbar input[type="file"] {
+      background: #1e1e1e;
+      color: #e0e0e0;
+      border: 1px solid #3a3a3a;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 0.95em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .toolbar button:hover {
+      background: #2a2a2a;
+      border-color: #4a9eff;
+    }
+
+    .toolbar input[type="file"] {
+      padding: 8px 12px;
+    }
+
+    .toolbar input[type="file"]::file-selector-button {
+      background: #4a9eff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      margin-right: 10px;
+      cursor: pointer;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .toolbar input[type="file"]::file-selector-button:hover {
+      background: #5aaeff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #1e1e1e;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    thead {
+      background: #2a2a2a;
+    }
+
+    th {
+      padding: 12px;
+      text-align: left;
+      color: #4a9eff;
+      font-weight: 600;
+      border-bottom: 2px solid #3a3a3a;
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #3a3a3a;
+    }
+
+    tbody tr:hover {
+      background: #2a2a2a;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    td[contenteditable="true"] {
+      background-color: transparent;
+      color: #e0e0e0;
+      outline: none;
+      transition: background-color 0.2s ease;
+    }
+
+    td[contenteditable="true"]:focus {
+      background-color: #2a2a2a;
+      border-radius: 4px;
+    }
+
+    .delete-btn {
+      background: #f44336;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 0.9em;
+      transition: background 0.3s ease;
+    }
+
+    .delete-btn:hover {
+      background: #ff5555;
+    }
+
+    @media (max-width: 768px) {
+      #itemForm {
+        flex-direction: column;
+      }
+
+      #itemForm label {
+        min-width: 100%;
+      }
+
+      .toolbar {
+        flex-direction: column;
+      }
+
+      .toolbar button,
+      .toolbar input[type="file"] {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📋 Receipt Calculator</h1>
+
+    <div class="panel">
+      <div id="totalAmount">Total: $0.00</div>
+
+      <form id="itemForm">
+        <label>
+          Source:
+          <input type="text" id="source" required placeholder="Enter source">
+        </label>
+        <label>
+          Item:
+          <input type="text" id="item" required placeholder="Enter item name">
+        </label>
+        <label>
+          Amount:
+          <input type="number" id="amount" step="0.01" required placeholder="0.00">
+        </label>
+        <button type="submit">Add Item</button>
+      </form>
+
+      <div class="toolbar">
+        <button onclick="downloadCSV()">Download CSV</button>
+        <input type="file" id="uploadCSV" accept=".csv" onchange="uploadCSV(event)">
+      </div>
+
+      <table id="itemsTable">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Item</th>
+            <th>Amount ($)</th>
+            <th style="width: 80px;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let total = 0;
+
+    function recalculateTotal() {
+      total = 0;
+      const rows = document.querySelectorAll('#itemsTable tbody tr');
+      rows.forEach(row => {
+        const amountCell = row.cells[2];
+        const amount = parseFloat(amountCell.textContent.replace('$', '').replace(',', '')) || 0;
+        total += amount;
+      });
+      document.getElementById('totalAmount').textContent = `Total: $${total.toFixed(2)}`;
+    }
+
+    function downloadCSV() {
+      const rows = document.querySelectorAll('#itemsTable tbody tr');
+      let csv = 'Source,Item,Amount\n';
+      rows.forEach(row => {
+        const source = row.cells[0].textContent;
+        const item = row.cells[1].textContent;
+        const amount = row.cells[2].textContent.replace('$', '').replace(',', '');
+        csv += `"${source}","${item}",${amount}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'items.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function uploadCSV(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const contents = e.target.result;
+        const lines = contents.trim().split('\n');
+        lines.shift(); // Remove header
+
+        const tbody = document.querySelector('#itemsTable tbody');
+        tbody.innerHTML = '';
+
+        lines.forEach(line => {
+          // Handle CSV with quotes
+          const parts = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g);
+          if (!parts || parts.length < 3) return;
+          
+          const source = parts[0].replace(/^"|"$/g, '');
+          const item = parts[1].replace(/^"|"$/g, '');
+          const amountStr = parts[2].replace(/^"|"$/g, '');
+          const amount = parseFloat(amountStr);
+          
+          if (isNaN(amount)) return;
+
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td contenteditable="true">${source}</td>
+            <td contenteditable="true">${item}</td>
+            <td contenteditable="true">$${amount.toFixed(2)}</td>
+            <td><button class="delete-btn" onclick="this.closest('tr').remove(); recalculateTotal();">Delete</button></td>
+          `;
+
+          row.querySelectorAll('td[contenteditable="true"]').forEach(cell => {
+            cell.addEventListener('input', () => recalculateTotal());
+          });
+
+          tbody.appendChild(row);
+        });
+
+        recalculateTotal();
+      };
+      reader.readAsText(file);
+      event.target.value = ''; // Reset file input
+    }
+
+    document.getElementById('itemForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const source = document.getElementById('source').value;
+      const item = document.getElementById('item').value;
+      const amount = parseFloat(document.getElementById('amount').value);
+
+      if (!source || !item || isNaN(amount)) {
+        alert('Please fill in all fields with valid values.');
+        return;
+      }
+
+      const tbody = document.querySelector('#itemsTable tbody');
+      const row = document.createElement('tr');
+
+      row.innerHTML = `
+        <td contenteditable="true">${source}</td>
+        <td contenteditable="true">${item}</td>
+        <td contenteditable="true">$${amount.toFixed(2)}</td>
+        <td><button class="delete-btn" onclick="this.closest('tr').remove(); recalculateTotal();">Delete</button></td>
+      `;
+
+      row.querySelectorAll('td[contenteditable="true"]').forEach(cell => {
+        cell.addEventListener('input', () => recalculateTotal());
+      });
+
+      tbody.appendChild(row);
+
+      total += amount;
+      document.getElementById('totalAmount').textContent = `Total: $${total.toFixed(2)}`;
+
+      // Clear form inputs
+      document.getElementById('itemForm').reset();
+    });
+  </script>
+</body>
+</html>
