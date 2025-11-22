@@ -19,6 +19,7 @@ get_icon() {
         *file-compare*) echo "🔍" ;;
         *invoice*) echo "📄" ;;
         *Recipt*|*receipt*) echo "📋" ;;
+        *loan*|*savings*) echo "💰" ;;
         *) echo "📱" ;;
     esac
 }

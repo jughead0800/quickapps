@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Loan & Savings Calculator</title>
+  <style>
+    :root {
+      --bg: #1a1a1a;
+      --panel: #2a2a2a;
+      --panel-2: #1e1e1e;
+      --text: #e0e0e0;
+      --muted: #888;
+      --accent: #4a9eff;
+      --accent-2: #5aaeff;
+      --danger: #f44336;
+      --ok: #4caf50;
+      --border: #3a3a3a;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text); background: var(--bg);
+      padding: 20px;
+    }
+    .wrap { max-width: 1400px; margin: 0 auto; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom: 16px; }
+    .brand { display:flex; align-items:center; gap:12px; }
+    .logo { width: 36px; height: 36px; border-radius: 8px; background: var(--accent); }
+    h1 { font-size: 18px; margin: 0; letter-spacing:.3px; }
+    nav { display:flex; gap:8px; }
+    .tab-btn { border:1px solid var(--border); background: #1e1e1e; color: var(--text); padding: 10px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; }
+    .tab-btn.active { outline: 2px solid var(--accent); background: var(--panel); }
+    .panel { background: var(--panel); border:1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 16px; }
+    .grid { display:grid; gap:12px; grid-template-columns: repeat(12, 1fr); }
+    .col-6 { grid-column: span 6; }
+    .col-4 { grid-column: span 4; }
+    .col-3 { grid-column: span 3; }
+    .col-8 { grid-column: span 8; }
+    .col-12 { grid-column: span 12; }
+    @media (max-width: 768px) {
+      .col-6, .col-4, .col-3, .col-8 { grid-column: span 12; }
+    }
+    label { font-size: 12px; color: var(--muted); display:block; margin-bottom:6px; }
+    input[type="text"], input[type="number"], select {
+      width: 100%; background: #1e1e1e; color: var(--text); border:1px solid var(--border); border-radius: 6px; padding: 10px 12px; outline: none;
+    }
+    input[type="number"]:focus, select:focus {
+      border-color: var(--accent);
+    }
+    .input-group { display: flex; gap: 8px; }
+    .input-group input { flex: 1; }
+    .input-group select { flex: 0 0 100px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; }
+    .summary-item { background: #1e1e1e; padding: 12px; border-radius: 6px; border: 1px solid var(--border); }
+    .summary-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .summary-value { font-size: 18px; font-weight: 700; color: var(--accent); }
+    .summary-value.ok { color: var(--ok); }
+    .summary-value.danger { color: var(--danger); }
+    .chart-container { width: 100%; height: 400px; background: #1e1e1e; border-radius: 6px; border: 1px solid var(--border); padding: 16px; margin-top: 16px; }
+    .chart-svg { width: 100%; height: 100%; }
+    .chart-line { fill: none; stroke-width: 2; }
+    .chart-line-balance { stroke: var(--accent); }
+    .chart-line-principal { stroke: var(--ok); }
+    .chart-line-growth { stroke: var(--accent); }
+    .chart-grid { stroke: var(--border); stroke-width: 1; opacity: 0.3; }
+    .chart-axis { stroke: var(--muted); stroke-width: 1; }
+    .chart-text { fill: var(--muted); font-size: 11px; }
+    .chart-legend { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .legend-color { width: 16px; height: 2px; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <h1>Loan & Savings Calculator</h1>
+      </div>
+      <nav>
+        <button class="tab-btn active" id="tab-loan" onclick="switchMode('loan')">Loan</button>
+        <button class="tab-btn" id="tab-savings" onclick="switchMode('savings')">Savings</button>
+      </nav>
+    </header>
+
+    <!-- LOAN MODE -->
+    <section id="view-loan" class="panel">
+      <div class="grid">
+        <div class="col-6">
+          <label>Loan Principal Amount</label>
+          <input type="number" id="loan-principal" placeholder="500000" min="0" step="1000" oninput="calculateLoan()" />
+        </div>
+        <div class="col-3">
+          <label>Loan Duration</label>
+          <input type="number" id="loan-duration" placeholder="30" min="0" step="0.5" oninput="calculateLoan()" />
+        </div>
+        <div class="col-3">
+          <label>Duration Unit</label>
+          <select id="loan-duration-unit" onchange="calculateLoan()">
+            <option value="years">Years</option>
+            <option value="months">Months</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label>Interest Rate (%)</label>
+          <input type="number" id="loan-rate" placeholder="5.5" min="0" step="0.1" oninput="calculateLoan()" />
+        </div>
+        <div class="col-6">
+          <label>Payment Frequency</label>
+          <select id="loan-frequency" onchange="calculateLoan()">
+            <option value="weekly">Weekly</option>
+            <option value="fortnightly">Fortnightly</option>
+            <option value="monthly" selected>Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label>Additional Repayments per Cycle (Optional)</label>
+          <input type="number" id="loan-additional" placeholder="0" min="0" step="100" oninput="calculateLoan()" />
+          <div class="hint">Extra amount paid on top of regular payment</div>
+        </div>
+      </div>
+
+      <div class="summary-grid" id="loan-summary"></div>
+
+      <div class="chart-container">
+        <svg class="chart-svg" id="loan-chart" viewBox="0 0 800 350" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id="gradient-balance" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:var(--accent);stop-opacity:0.3" />
+              <stop offset="100%" style="stop-color:var(--accent);stop-opacity:0" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="chart-legend" id="loan-legend"></div>
+      </div>
+    </section>
+
+    <!-- SAVINGS MODE -->
+    <section id="view-savings" class="panel" style="display:none">
+      <div class="grid">
+        <div class="col-6">
+          <label>Starting Principal Amount (Optional)</label>
+          <input type="number" id="savings-principal" placeholder="0" min="0" step="1000" oninput="calculateSavings()" />
+          <div class="hint">Initial amount in savings account</div>
+        </div>
+        <div class="col-6">
+          <label>Regular Deposit Amount</label>
+          <input type="number" id="savings-deposit" placeholder="1000" min="0" step="100" oninput="calculateSavings()" />
+        </div>
+        <div class="col-6">
+          <label>Deposit Frequency</label>
+          <select id="savings-frequency" onchange="calculateSavings()">
+            <option value="weekly">Weekly</option>
+            <option value="fortnightly">Fortnightly</option>
+            <option value="monthly" selected>Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label>Interest Rate (%)</label>
+          <input type="number" id="savings-rate" placeholder="4.5" min="0" step="0.1" oninput="calculateSavings()" />
+        </div>
+        <div class="col-3">
+          <label>Time Period</label>
+          <input type="number" id="savings-duration" placeholder="10" min="0" step="0.5" oninput="calculateSavings()" />
+        </div>
+        <div class="col-3">
+          <label>Period Unit</label>
+          <select id="savings-duration-unit" onchange="calculateSavings()">
+            <option value="years" selected>Years</option>
+            <option value="months">Months</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="summary-grid" id="savings-summary"></div>
+
+      <div class="chart-container">
+        <svg class="chart-svg" id="savings-chart" viewBox="0 0 800 350" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id="gradient-growth" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:var(--accent);stop-opacity:0.3" />
+              <stop offset="100%" style="stop-color:var(--accent);stop-opacity:0" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="chart-legend" id="savings-legend"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    function switchMode(mode) {
+      const loanView = document.getElementById('view-loan');
+      const savingsView = document.getElementById('view-savings');
+      const loanTab = document.getElementById('tab-loan');
+      const savingsTab = document.getElementById('tab-savings');
+      
+      if (mode === 'loan') {
+        loanView.style.display = '';
+        savingsView.style.display = 'none';
+        loanTab.classList.add('active');
+        savingsTab.classList.remove('active');
+      } else {
+        loanView.style.display = 'none';
+        savingsView.style.display = '';
+        loanTab.classList.remove('active');
+        savingsTab.classList.add('active');
+        calculateSavings();
+      }
+    }
+
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amount);
+    }
+
+    function formatNumber(num) {
+      return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(num);
+    }
+
+    // Frequency to periods per year
+    const frequencyMap = {
+      weekly: 52,
+      fortnightly: 26,
+      monthly: 12,
+      quarterly: 4,
+      yearly: 1
+    };
+
+    // Frequency to days per period
+    const frequencyDaysMap = {
+      weekly: 7,
+      fortnightly: 14,
+      monthly: 30.44, // Average days per month (365.25/12)
+      quarterly: 91.31, // Average days per quarter (365.25/4)
+      yearly: 365.25
+    };
+
+    function calculateLoan() {
+      const principal = parseFloat(document.getElementById('loan-principal').value) || 0;
+      const duration = parseFloat(document.getElementById('loan-duration').value) || 0;
+      const durationUnit = document.getElementById('loan-duration-unit').value;
+      const rate = parseFloat(document.getElementById('loan-rate').value) || 0;
+      const frequency = document.getElementById('loan-frequency').value;
+      const additional = parseFloat(document.getElementById('loan-additional').value) || 0;
+
+      if (principal <= 0 || duration <= 0 || rate <= 0) {
+        document.getElementById('loan-summary').innerHTML = '<div class="col-12"><p style="color: var(--muted);">Please enter valid loan details to see calculations.</p></div>';
+        document.getElementById('loan-chart').innerHTML = '';
+        document.getElementById('loan-legend').innerHTML = '';
+        return;
+      }
+
+      // Convert duration to total periods based on frequency
+      const periodsPerYear = frequencyMap[frequency];
+      const totalYears = durationUnit === 'years' ? duration : duration / 12;
+      const totalPeriods = Math.ceil(totalYears * periodsPerYear);
+      const totalMonths = totalYears * 12;
+      
+      // Calculate daily interest rate
+      const annualRate = rate / 100;
+      const dailyRate = annualRate / 365.25;
+      const daysPerPeriod = frequencyDaysMap[frequency];
+      
+      // Calculate periodic interest rate using daily compounding (consistent with interest calculation)
+      const periodicRate = Math.pow(1 + dailyRate, daysPerPeriod) - 1;
+
+      // Calculate standard payment (amortization formula for periodic payments)
+      let payment = 0;
+      if (periodicRate > 0) {
+        payment = principal * (periodicRate * Math.pow(1 + periodicRate, totalPeriods)) / 
+                  (Math.pow(1 + periodicRate, totalPeriods) - 1);
+      } else {
+        payment = principal / totalPeriods;
+      }
+
+      // Calculate interest-only payment (per period) using daily interest
+      const interestOnlyPayment = principal * periodicRate;
+
+      // Simulate loan WITHOUT additional repayments to get baseline interest
+      let baselineBalance = principal;
+      let baselineTotalInterest = 0;
+      for (let period = 1; period <= totalPeriods && baselineBalance > 0.01; period++) {
+        // Calculate interest for this period using daily compounding (same as periodicRate)
+        const interestPayment = baselineBalance * periodicRate;
+        const principalPayment = payment - interestPayment;
+        baselineBalance -= principalPayment;
+        baselineTotalInterest += interestPayment;
+        if (baselineBalance <= 0.01) break;
+      }
+
+      // Simulate loan with additional repayments using daily interest
+      let balance = principal;
+      let totalInterest = 0;
+      let totalPrincipal = 0;
+      let totalAdditionalRepayments = 0;
+      const dataPoints = [{ month: 0, balance: principal, principal: principal }];
+      let periodsPaid = 0;
+      let currentMonth = 0;
+      const periodsPerMonth = periodsPerYear / 12;
+      let currentDay = 0;
+
+      for (let period = 1; period <= totalPeriods && balance > 0.01; period++) {
+        // Calculate interest for this period using daily compounding on remaining principal (same as periodicRate)
+        const interestPayment = balance * periodicRate;
+        let principalPayment = payment - interestPayment;
+        
+        // Track regular principal payment before adding additional
+        const regularPrincipalPayment = principalPayment;
+        principalPayment += additional;
+        
+        // Don't overpay
+        if (principalPayment > balance) {
+          principalPayment = balance;
+        }
+        
+        // Calculate actual additional repayment made (may be less if loan is paid off early)
+        const actualAdditionalThisPeriod = principalPayment - regularPrincipalPayment;
+        totalAdditionalRepayments += actualAdditionalThisPeriod;
+        
+        balance -= principalPayment;
+        totalInterest += interestPayment;
+        totalPrincipal += principalPayment;
+        periodsPaid = period;
+        currentDay += daysPerPeriod;
+
+        // Record data point every month (or at period boundaries that align with months)
+        const monthForPeriod = period / periodsPerMonth;
+        const daysToMonth = currentDay / 30.44;
+        if (Math.floor(daysToMonth) > currentMonth || period === totalPeriods || balance <= 0.01) {
+          currentMonth = Math.floor(daysToMonth);
+          dataPoints.push({
+            month: currentMonth,
+            balance: Math.max(0, balance),
+            principal: Math.max(0, balance)
+          });
+        }
+
+        if (balance <= 0.01) break;
+      }
+
+      const totalPaid = totalInterest + totalPrincipal;
+      const monthsPaid = periodsPaid / periodsPerMonth;
+      const timeSaved = totalMonths - monthsPaid;
+      const interestSaved = baselineTotalInterest - totalInterest;
+
+      // Update summary
+      const summary = `
+        <div class="summary-item">
+          <div class="summary-label">Interest-Only Payment</div>
+          <div class="summary-value">${formatCurrency(interestOnlyPayment)}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Principal + Interest Payment</div>
+          <div class="summary-value">${formatCurrency(payment)}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Total Interest Paid</div>
+          <div class="summary-value danger">${formatCurrency(totalInterest)}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Total Principal Paid</div>
+          <div class="summary-value ok">${formatCurrency(totalPrincipal)}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Total Amount Paid</div>
+          <div class="summary-value">${formatCurrency(totalPaid)}</div>
+        </div>
+        ${additional > 0 ? `
+        <div class="summary-item">
+          <div class="summary-label">Total Additional Repayments</div>
+          <div class="summary-value">${formatCurrency(totalAdditionalRepayments)}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Interest Saved</div>
+          <div class="summary-value ok">${formatCurrency(interestSaved)}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Time Saved</div>
+          <div class="summary-value ok">${formatNumber(timeSaved)} months</div>
+        </div>
+        ` : ''}
+      `;
+      document.getElementById('loan-summary').innerHTML = summary;
+
+      // Draw chart
+      drawLoanChart(dataPoints, totalMonths);
+    }
+
+    function drawLoanChart(dataPoints, maxMonths) {
+      const svg = document.getElementById('loan-chart');
+      svg.innerHTML = '<defs><linearGradient id="gradient-balance" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:var(--accent);stop-opacity:0.3" /><stop offset="100%" style="stop-color:var(--accent);stop-opacity:0" /></linearGradient></defs>';
+
+      const margin = { top: 20, right: 40, bottom: 40, left: 60 };
+      const width = 800 - margin.left - margin.right;
+      const height = 350 - margin.top - margin.bottom;
+
+      const maxBalance = Math.max(...dataPoints.map(d => d.balance));
+      const minBalance = 0;
+      const maxMonth = Math.max(...dataPoints.map(d => d.month));
+
+      // Draw grid lines
+      const gridLines = 5;
+      for (let i = 0; i <= gridLines; i++) {
+        const y = margin.top + (height / gridLines) * i;
+        const value = maxBalance - (maxBalance / gridLines) * i;
+        
+        // Horizontal grid line
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', margin.left);
+        line.setAttribute('y1', y);
+        line.setAttribute('x2', margin.left + width);
+        line.setAttribute('y2', y);
+        line.setAttribute('class', 'chart-grid');
+        svg.appendChild(line);
+
+        // Y-axis label
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', margin.left - 10);
+        text.setAttribute('y', y + 4);
+        text.setAttribute('class', 'chart-text');
+        text.setAttribute('text-anchor', 'end');
+        text.textContent = formatCurrency(value);
+        svg.appendChild(text);
+      }
+
+      // X-axis labels
+      const xSteps = 6;
+      for (let i = 0; i <= xSteps; i++) {
+        const x = margin.left + (width / xSteps) * i;
+        const month = (maxMonth / xSteps) * i;
+        
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x);
+        text.setAttribute('y', height + margin.top + 20);
+        text.setAttribute('class', 'chart-text');
+        text.setAttribute('text-anchor', 'middle');
+        text.textContent = formatNumber(month);
+        svg.appendChild(text);
+      }
+
+      // X-axis label
+      const xAxisLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      xAxisLabel.setAttribute('x', margin.left + width / 2);
+      xAxisLabel.setAttribute('y', height + margin.top + 35);
+      xAxisLabel.setAttribute('class', 'chart-text');
+      xAxisLabel.setAttribute('text-anchor', 'middle');
+      xAxisLabel.setAttribute('font-weight', '600');
+      xAxisLabel.textContent = 'Time (Months)';
+      svg.appendChild(xAxisLabel);
+
+      // Draw axes
+      const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      xAxis.setAttribute('x1', margin.left);
+      xAxis.setAttribute('y1', margin.top + height);
+      xAxis.setAttribute('x2', margin.left + width);
+      xAxis.setAttribute('y2', margin.top + height);
+      xAxis.setAttribute('class', 'chart-axis');
+      svg.appendChild(xAxis);
+
+      const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      yAxis.setAttribute('x1', margin.left);
+      yAxis.setAttribute('y1', margin.top);
+      yAxis.setAttribute('x2', margin.left);
+      yAxis.setAttribute('y2', margin.top + height);
+      yAxis.setAttribute('class', 'chart-axis');
+      svg.appendChild(yAxis);
+
+      // Draw balance line
+      const balancePath = dataPoints.map((d, i) => {
+        const x = margin.left + (width / maxMonth) * d.month;
+        const y = margin.top + height - (height / maxBalance) * d.balance;
+        return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+      }).join(' ');
+
+      const balanceLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      balanceLine.setAttribute('d', balancePath);
+      balanceLine.setAttribute('class', 'chart-line chart-line-balance');
+      svg.appendChild(balanceLine);
+
+      // Draw principal line (same as balance for loan)
+      const principalPath = dataPoints.map((d, i) => {
+        const x = margin.left + (width / maxMonth) * d.month;
+        const y = margin.top + height - (height / maxBalance) * d.principal;
+        return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+      }).join(' ');
+
+      const principalLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      principalLine.setAttribute('d', principalPath);
+      principalLine.setAttribute('class', 'chart-line chart-line-principal');
+      svg.appendChild(principalLine);
+
+      // Legend
+      document.getElementById('loan-legend').innerHTML = `
+        <div class="legend-item">
+          <div class="legend-color" style="background: var(--accent);"></div>
+          <span>Total Balance</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: var(--ok);"></div>
+          <span>Principal Remaining</span>
+        </div>
+      `;
+    }
+
+    function calculateSavings() {
+      const principal = parseFloat(document.getElementById('savings-principal').value) || 0;
+      const deposit = parseFloat(document.getElementById('savings-deposit').value) || 0;
+      const frequency = document.getElementById('savings-frequency').value;
+      const rate = parseFloat(document.getElementById('savings-rate').value) || 0;
+      const duration = parseFloat(document.getElementById('savings-duration').value) || 0;
+      const durationUnit = document.getElementById('savings-duration-unit').value;
+
+      if ((principal <= 0 && deposit <= 0) || duration <= 0 || rate <= 0) {
+        document.getElementById('savings-summary').innerHTML = '<div class="col-12"><p style="color: var(--muted);">Please enter valid savings details to see calculations.</p></div>';
+        document.getElementById('savings-chart').innerHTML = '';
+        document.getElementById('savings-legend').innerHTML = '';
+        return;
+      }
+
+      // Convert duration to years
+      const totalYears = durationUnit === 'years' ? duration : duration / 12;
+      const periodsPerYear = frequencyMap[frequency];
+      const annualRate = rate / 100;
+      const periodsPerPeriod = periodsPerYear;
+      const totalPeriods = Math.ceil(totalYears * periodsPerYear);
+
+      // Compound interest with regular deposits
+      // A = P(1 + r/n)^(nt) + PMT * (((1 + r/n)^(nt) - 1) / (r/n))
+      const n = periodsPerYear;
+      const t = totalYears;
+      const r = annualRate;
+      const P = principal;
+      const PMT = deposit;
+
+      // Future value of principal
+      const principalFV = P * Math.pow(1 + r / n, n * t);
+
+      // Future value of annuity (regular deposits)
+      let depositsFV = 0;
+      if (PMT > 0 && r > 0) {
+        depositsFV = PMT * ((Math.pow(1 + r / n, n * t) - 1) / (r / n));
+      } else if (PMT > 0) {
+        depositsFV = PMT * totalPeriods;
+      }
+
+      const finalBalance = principalFV + depositsFV;
+      const totalDeposits = P + (PMT * totalPeriods);
+      const totalInterest = finalBalance - totalDeposits;
+      const growthPercent = totalDeposits > 0 ? ((finalBalance / totalDeposits) - 1) * 100 : 0;
+
+      // Generate data points for chart
+      const dataPoints = [];
+      const months = Math.ceil(totalYears * 12);
+      for (let month = 0; month <= months; month += Math.max(1, Math.floor(months / 50))) {
+        const year = month / 12;
+        const periods = Math.floor(year * periodsPerYear);
+        const principalAtTime = P * Math.pow(1 + r / n, n * year);
+        let depositsAtTime = 0;
+        if (PMT > 0 && r > 0) {
+          depositsAtTime = PMT * ((Math.pow(1 + r / n, n * year) - 1) / (r / n));
+        } else if (PMT > 0) {
+          depositsAtTime = PMT * periods;
+        }
+        const balanceAtTime = principalAtTime + depositsAtTime;
+        dataPoints.push({ month, balance: balanceAtTime });
+      }
+
+      // Update summary
+      const summary = `
+        <div class="summary-item">
+          <div class="summary-label">Total Deposits</div>
+          <div class="summary-value">${formatCurrency(totalDeposits)}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Total Interest Earned</div>
+          <div class="summary-value ok">${formatCurrency(totalInterest)}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Final Balance</div>
+          <div class="summary-value ok">${formatCurrency(finalBalance)}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Growth</div>
+          <div class="summary-value ok">${growthPercent.toFixed(2)}%</div>
+        </div>
+      `;
+      document.getElementById('savings-summary').innerHTML = summary;
+
+      // Draw chart
+      drawSavingsChart(dataPoints, months);
+    }
+
+    function drawSavingsChart(dataPoints, maxMonths) {
+      const svg = document.getElementById('savings-chart');
+      svg.innerHTML = '<defs><linearGradient id="gradient-growth" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:var(--accent);stop-opacity:0.3" /><stop offset="100%" style="stop-color:var(--accent);stop-opacity:0" /></linearGradient></defs>';
+
+      const margin = { top: 20, right: 40, bottom: 40, left: 60 };
+      const width = 800 - margin.left - margin.right;
+      const height = 350 - margin.top - margin.bottom;
+
+      const maxBalance = Math.max(...dataPoints.map(d => d.balance));
+      const minBalance = Math.min(...dataPoints.map(d => d.balance));
+      const range = maxBalance - minBalance || 1;
+
+      // Draw grid lines
+      const gridLines = 5;
+      for (let i = 0; i <= gridLines; i++) {
+        const y = margin.top + (height / gridLines) * i;
+        const value = maxBalance - (range / gridLines) * i;
+        
+        // Horizontal grid line
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', margin.left);
+        line.setAttribute('y1', y);
+        line.setAttribute('x2', margin.left + width);
+        line.setAttribute('y2', y);
+        line.setAttribute('class', 'chart-grid');
+        svg.appendChild(line);
+
+        // Y-axis label
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', margin.left - 10);
+        text.setAttribute('y', y + 4);
+        text.setAttribute('class', 'chart-text');
+        text.setAttribute('text-anchor', 'end');
+        text.textContent = formatCurrency(value);
+        svg.appendChild(text);
+      }
+
+      // Y-axis label
+      const yAxisLabelSavings = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      yAxisLabelSavings.setAttribute('x', margin.left - 30);
+      yAxisLabelSavings.setAttribute('y', margin.top + height / 2);
+      yAxisLabelSavings.setAttribute('class', 'chart-text');
+      yAxisLabelSavings.setAttribute('text-anchor', 'middle');
+      yAxisLabelSavings.setAttribute('font-weight', '600');
+      yAxisLabelSavings.setAttribute('transform', `rotate(-90 ${margin.left - 30} ${margin.top + height / 2})`);
+      yAxisLabelSavings.textContent = 'Amount ($)';
+      svg.appendChild(yAxisLabelSavings);
+
+      // X-axis labels
+      const xSteps = 6;
+      for (let i = 0; i <= xSteps; i++) {
+        const x = margin.left + (width / xSteps) * i;
+        const month = (maxMonths / xSteps) * i;
+        
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x);
+        text.setAttribute('y', height + margin.top + 20);
+        text.setAttribute('class', 'chart-text');
+        text.setAttribute('text-anchor', 'middle');
+        text.textContent = formatNumber(month);
+        svg.appendChild(text);
+      }
+
+      // X-axis label
+      const xAxisLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      xAxisLabel.setAttribute('x', margin.left + width / 2);
+      xAxisLabel.setAttribute('y', height + margin.top + 35);
+      xAxisLabel.setAttribute('class', 'chart-text');
+      xAxisLabel.setAttribute('text-anchor', 'middle');
+      xAxisLabel.setAttribute('font-weight', '600');
+      xAxisLabel.textContent = 'Time (Months)';
+      svg.appendChild(xAxisLabel);
+
+      // Draw axes
+      const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      xAxis.setAttribute('x1', margin.left);
+      xAxis.setAttribute('y1', margin.top + height);
+      xAxis.setAttribute('x2', margin.left + width);
+      xAxis.setAttribute('y2', margin.top + height);
+      xAxis.setAttribute('class', 'chart-axis');
+      svg.appendChild(xAxis);
+
+      const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      yAxis.setAttribute('x1', margin.left);
+      yAxis.setAttribute('y1', margin.top);
+      yAxis.setAttribute('x2', margin.left);
+      yAxis.setAttribute('y2', margin.top + height);
+      yAxis.setAttribute('class', 'chart-axis');
+      svg.appendChild(yAxis);
+
+      // Draw growth line
+      const growthPath = dataPoints.map((d, i) => {
+        const x = margin.left + (width / maxMonths) * d.month;
+        const y = margin.top + height - ((d.balance - minBalance) / range) * height;
+        return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+      }).join(' ');
+
+      const growthLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      growthLine.setAttribute('d', growthPath);
+      growthLine.setAttribute('class', 'chart-line chart-line-growth');
+      svg.appendChild(growthLine);
+
+      // Legend
+      document.getElementById('savings-legend').innerHTML = `
+        <div class="legend-item">
+          <div class="legend-color" style="background: var(--accent);"></div>
+          <span>Account Balance</span>
+        </div>
+      `;
+    }
+
+    // Initialize
+    calculateLoan();
+  </script>
+</body>
+</html>
+
