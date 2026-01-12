@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PC Builder</title>
+  <style>
+    :root {
+      --bg: #1a1a1a;
+      --panel: #2a2a2a;
+      --panel-2: #1e1e1e;
+      --text: #e0e0e0;
+      --muted: #888;
+      --accent: #4a9eff;
+      --accent-2: #5aaeff;
+      --danger: #f44336;
+      --ok: #4caf50;
+      --border: #3a3a3a;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text); background: var(--bg);
+    }
+    .wrap { max-width: 1400px; margin: 0 auto; padding: 24px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom: 16px; }
+    .brand { display:flex; align-items:center; gap:12px; }
+    .logo { width: 36px; height: 36px; border-radius: 8px; background: var(--accent); }
+    h1 { font-size: 18px; margin: 0; letter-spacing:.3px; }
+    nav { display:flex; gap:8px; }
+    .tab-btn { border:1px solid var(--border); background: #1e1e1e; color: var(--text); padding: 10px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; }
+    .tab-btn.active { outline: 2px solid var(--accent); background: var(--panel); }
+    .panel { background: var(--panel); border:1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 16px; }
+    .grid { display:grid; gap:12px; grid-template-columns: repeat(12, 1fr); }
+    .col-6 { grid-column: span 6; }
+    .col-4 { grid-column: span 4; }
+    .col-3 { grid-column: span 3; }
+    .col-8 { grid-column: span 8; }
+    .col-12 { grid-column: span 12; }
+    @media (max-width: 768px) {
+      .col-6, .col-4, .col-3, .col-8 { grid-column: span 12; }
+    }
+    label { font-size: 12px; color: var(--muted); display:block; margin-bottom:6px; }
+    input[type="text"], input[type="number"], select {
+      width: 100%; background: #1e1e1e; color: var(--text); border:1px solid var(--border); border-radius: 6px; padding: 10px 12px; outline: none;
+    }
+    input[type="text"]:focus, input[type="number"]:focus, select:focus {
+      border-color: var(--accent);
+    }
+    .btn { appearance: none; border:1px solid var(--border); background: #1e1e1e; color: var(--text); padding: 10px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.3s ease; font-size: 13px; }
+    .btn:hover { background: #2a2a2a; }
+    .btn-primary { background: var(--accent); border: none; color: white; }
+    .btn-primary:hover { background: var(--accent-2); }
+    .btn-danger { background: var(--danger); border: none; color: white; }
+    .btn-danger:hover { background: #ff5555; }
+    .btn-sm { padding: 6px 10px; font-size: 11px; }
+    .toolbar { display:flex; flex-wrap: wrap; gap: 10px; align-items:center; justify-content: space-between; margin: 8px 0 16px; }
+    .toolbar .group { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { text-align:left; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border); padding: 8px; font-weight: 600; }
+    tbody td { border-bottom: 1px dashed var(--border); padding: 6px 8px; vertical-align: top; font-size: 13px; }
+    tbody tr:hover { background: rgba(255,255,255,.02); }
+    .num { text-align: right; }
+    .category-section { margin-bottom: 16px; }
+    .category-header { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #1e1e1e; border-radius: 6px; cursor: pointer; margin-bottom: 8px; }
+    .category-header:hover { background: #252525; }
+    .category-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+    .category-toggle { color: var(--muted); font-size: 12px; }
+    .category-content { display: none; }
+    .category-content.expanded { display: block; }
+    .part-item { display: flex; align-items: center; gap: 12px; padding: 10px; background: #1e1e1e; border-radius: 6px; margin-bottom: 8px; }
+    .part-item:hover { background: #252525; }
+    .part-info { flex: 1; }
+    .part-name { font-weight: 600; margin-bottom: 4px; }
+    .part-details { font-size: 11px; color: var(--muted); }
+    .part-price { font-weight: 700; color: var(--accent); min-width: 80px; text-align: right; }
+    .part-actions { display: flex; gap: 6px; }
+    .build-card { background: #1e1e1e; border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 12px; }
+    .build-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .build-card-name { font-weight: 600; font-size: 14px; }
+    .build-card-price { color: var(--accent); font-weight: 700; }
+    .build-card-meta { font-size: 11px; color: var(--muted); }
+    .total-price { background: #1e1e1e; padding: 16px; border-radius: 6px; border: 1px solid var(--border); margin-top: 16px; }
+    .total-price-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .total-price-value { font-size: 24px; font-weight: 700; color: var(--ok); }
+    .compare-table { overflow-x: auto; }
+    .compare-table table { min-width: 600px; }
+    .compare-card { background: #1e1e1e; border: 1px solid var(--border); border-radius: 6px; padding: 16px; }
+    .compare-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .compare-card-header { text-align: center; margin-bottom: 16px; }
+    .compare-card-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    .compare-card-price { font-size: 24px; font-weight: 700; color: var(--accent); }
+    .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+    .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+    .category-color { width: 4px; height: 20px; border-radius: 2px; margin-right: 8px; }
+    .category-color.cpu { background: #4a9eff; }
+    .category-color.gpu { background: #9eff4a; }
+    .category-color.ram { background: #ff9e4a; }
+    .category-color.storage { background: #ff4a9e; }
+    .category-color.motherboard { background: #9e4aff; }
+    .category-color.psu { background: #4aff9e; }
+    .category-color.case { background: #ff4a4a; }
+    .category-color.cooling { background: #4affff; }
+    .category-color.other { background: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <h1>PC Builder</h1>
+      </div>
+      <nav>
+        <button class="tab-btn active" id="tab-build" onclick="switchTab('build')">Build</button>
+        <button class="tab-btn" id="tab-saved" onclick="switchTab('saved')">Saved Builds</button>
+        <button class="tab-btn" id="tab-compare" onclick="switchTab('compare')">Compare</button>
+      </nav>
+    </header>
+
+    <!-- BUILD TAB -->
+    <section id="view-build" class="panel">
+      <div class="toolbar">
+        <div class="group">
+          <button class="btn btn-primary" onclick="exportToCSV()">Export to CSV</button>
+          <input type="file" id="csv-file-input" accept=".csv" style="display: none;" onchange="importFromCSV(event)" />
+          <button class="btn" onclick="document.getElementById('csv-file-input').click()">Load from CSV</button>
+          <button class="btn btn-danger" onclick="clearBuild()">Clear Build</button>
+        </div>
+        <div class="group">
+          <input type="text" id="build-name-input" placeholder="Build name..." style="max-width: 200px;" />
+          <button class="btn btn-primary" onclick="saveBuild()">Save Build</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="col-4">
+          <label>Category</label>
+          <select id="part-category">
+            <option value="CPU">CPU</option>
+            <option value="GPU">GPU</option>
+            <option value="RAM">RAM</option>
+            <option value="Storage">Storage</option>
+            <option value="Motherboard">Motherboard</option>
+            <option value="PSU">PSU</option>
+            <option value="Case">Case</option>
+            <option value="Cooling">Cooling</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="col-4">
+          <label>Part Name</label>
+          <input type="text" id="part-name" placeholder="e.g., Intel Core i7-13700K" />
+        </div>
+        <div class="col-2">
+          <label>Price ($)</label>
+          <input type="number" id="part-price" placeholder="0.00" step="0.01" min="0" />
+        </div>
+        <div class="col-2">
+          <label>Source</label>
+          <input type="text" id="part-source" placeholder="e.g., Amazon" />
+        </div>
+      </div>
+      <div style="margin-top: 12px;">
+        <button class="btn btn-primary" onclick="addPart()">Add Part</button>
+      </div>
+
+      <div id="parts-list" style="margin-top: 24px;"></div>
+
+      <div class="total-price">
+        <div class="total-price-label">Total Price</div>
+        <div class="total-price-value" id="total-price">$0.00</div>
+      </div>
+    </section>
+
+    <!-- SAVED BUILDS TAB -->
+    <section id="view-saved" class="panel" style="display:none">
+      <div id="saved-builds-list"></div>
+      <div id="saved-builds-empty" class="empty-state" style="display:none;">
+        <div class="empty-state-icon">💾</div>
+        <p>No saved builds yet. Create a build and save it to see it here.</p>
+      </div>
+    </section>
+
+    <!-- COMPARE TAB -->
+    <section id="view-compare" class="panel" style="display:none">
+      <div class="grid" style="margin-bottom: 16px;">
+        <div class="col-6">
+          <label>Build 1</label>
+          <select id="compare-build-1" onchange="updateCompareView()">
+            <option value="">Select a build...</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label>Build 2</label>
+          <select id="compare-build-2" onchange="updateCompareView()">
+            <option value="">Select a build...</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="compare-view-toggle" style="margin-bottom: 16px; display: none;">
+        <button class="btn btn-sm" id="btn-table-view" onclick="setCompareView('table')">Table View</button>
+        <button class="btn btn-sm" id="btn-card-view" onclick="setCompareView('card')">Card View</button>
+      </div>
+
+      <div id="compare-table-view" style="display:none;">
+        <div class="compare-table">
+          <table id="compare-table-content"></table>
+        </div>
+      </div>
+
+      <div id="compare-card-view" style="display:none;">
+        <div class="compare-nav">
+          <button class="btn" id="compare-prev" onclick="navigateCompareCard(-1)">← Previous</button>
+          <span id="compare-card-indicator">1 / 2</span>
+          <button class="btn" id="compare-next" onclick="navigateCompareCard(1)">Next →</button>
+        </div>
+        <div id="compare-card-content"></div>
+      </div>
+
+      <div id="compare-empty" class="empty-state">
+        <div class="empty-state-icon">⚖️</div>
+        <p>Select two builds to compare them side by side.</p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_BUILDS = 'pcbuilder.builds';
+    const STORAGE_CURRENT = 'pcbuilder.current';
+    const CATEGORIES = ['CPU', 'GPU', 'RAM', 'Storage', 'Motherboard', 'PSU', 'Case', 'Cooling', 'Other'];
+    let currentBuild = { parts: [] };
+    let savedBuilds = [];
+    let compareViewMode = 'table';
+    let compareCardIndex = 0;
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('section[id^="view-"]').forEach(section => section.style.display = 'none');
+      
+      document.getElementById(`tab-${tab}`).classList.add('active');
+      document.getElementById(`view-${tab}`).style.display = '';
+      
+      if (tab === 'saved') {
+        loadSavedBuildsList();
+      } else if (tab === 'compare') {
+        loadCompareBuilds();
+      }
+    }
+
+    function loadCurrentBuild() {
+      try {
+        const stored = localStorage.getItem(STORAGE_CURRENT);
+        if (stored) {
+          currentBuild = JSON.parse(stored);
+        }
+      } catch (e) {
+        currentBuild = { parts: [] };
+      }
+      renderPartsList();
+      updateTotalPrice();
+    }
+
+    function saveCurrentBuild() {
+      localStorage.setItem(STORAGE_CURRENT, JSON.stringify(currentBuild));
+    }
+
+    function loadSavedBuilds() {
+      try {
+        const stored = localStorage.getItem(STORAGE_BUILDS);
+        if (stored) {
+          savedBuilds = JSON.parse(stored);
+        }
+      } catch (e) {
+        savedBuilds = [];
+      }
+    }
+
+    function saveSavedBuilds() {
+      localStorage.setItem(STORAGE_BUILDS, JSON.stringify(savedBuilds));
+    }
+
+    function addPart() {
+      const category = document.getElementById('part-category').value;
+      const name = document.getElementById('part-name').value.trim();
+      const price = parseFloat(document.getElementById('part-price').value) || 0;
+      const source = document.getElementById('part-source').value.trim();
+
+      if (!name) {
+        alert('Please enter a part name');
+        return;
+      }
+
+      currentBuild.parts.push({
+        id: Date.now(),
+        category,
+        name,
+        price,
+        source
+      });
+
+      document.getElementById('part-name').value = '';
+      document.getElementById('part-price').value = '';
+      document.getElementById('part-source').value = '';
+
+      renderPartsList();
+      updateTotalPrice();
+      saveCurrentBuild();
+    }
+
+    function deletePart(id) {
+      currentBuild.parts = currentBuild.parts.filter(p => p.id !== id);
+      renderPartsList();
+      updateTotalPrice();
+      saveCurrentBuild();
+    }
+
+    function editPart(id) {
+      const part = currentBuild.parts.find(p => p.id === id);
+      if (!part) return;
+
+      document.getElementById('part-category').value = part.category;
+      document.getElementById('part-name').value = part.name;
+      document.getElementById('part-price').value = part.price;
+      document.getElementById('part-source').value = part.source;
+
+      deletePart(id);
+    }
+
+    function renderPartsList() {
+      const container = document.getElementById('parts-list');
+      if (currentBuild.parts.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🖥️</div><p>No parts added yet. Add your first part above.</p></div>';
+        return;
+      }
+
+      const byCategory = {};
+      currentBuild.parts.forEach(part => {
+        if (!byCategory[part.category]) {
+          byCategory[part.category] = [];
+        }
+        byCategory[part.category].push(part);
+      });
+
+      let html = '';
+      CATEGORIES.forEach(category => {
+        if (!byCategory[category] || byCategory[category].length === 0) return;
+
+        const categoryKey = category.toLowerCase();
+        html += `
+          <div class="category-section">
+            <div class="category-header" onclick="toggleCategory('${categoryKey}')">
+              <div style="display: flex; align-items: center;">
+                <div class="category-color ${categoryKey}"></div>
+                <h3>${category}</h3>
+              </div>
+              <span class="category-toggle" id="toggle-${categoryKey}">▼</span>
+            </div>
+            <div class="category-content expanded" id="category-${categoryKey}">
+        `;
+
+        byCategory[category].forEach(part => {
+          html += `
+            <div class="part-item">
+              <div class="part-info">
+                <div class="part-name">${escapeHtml(part.name)}</div>
+                <div class="part-details">${escapeHtml(part.source || 'No source')}</div>
+              </div>
+              <div class="part-price">$${part.price.toFixed(2)}</div>
+              <div class="part-actions">
+                <button class="btn btn-sm" onclick="editPart(${part.id})">Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="deletePart(${part.id})">Delete</button>
+              </div>
+            </div>
+          `;
+        });
+
+        html += `
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function toggleCategory(categoryKey) {
+      const content = document.getElementById(`category-${categoryKey}`);
+      const toggle = document.getElementById(`toggle-${categoryKey}`);
+      content.classList.toggle('expanded');
+      toggle.textContent = content.classList.contains('expanded') ? '▼' : '▶';
+    }
+
+    function updateTotalPrice() {
+      const total = currentBuild.parts.reduce((sum, part) => sum + part.price, 0);
+      document.getElementById('total-price').textContent = `$${total.toFixed(2)}`;
+    }
+
+    function saveBuild() {
+      const name = document.getElementById('build-name-input').value.trim();
+      if (!name) {
+        alert('Please enter a build name');
+        return;
+      }
+
+      if (currentBuild.parts.length === 0) {
+        alert('Please add at least one part before saving');
+        return;
+      }
+
+      const totalPrice = currentBuild.parts.reduce((sum, part) => sum + part.price, 0);
+      const build = {
+        id: Date.now(),
+        name,
+        parts: JSON.parse(JSON.stringify(currentBuild.parts)),
+        totalPrice,
+        createdAt: Date.now()
+      };
+
+      loadSavedBuilds();
+      savedBuilds.push(build);
+      saveSavedBuilds();
+
+      document.getElementById('build-name-input').value = '';
+      alert('Build saved successfully!');
+    }
+
+    function loadSavedBuildsList() {
+      loadSavedBuilds();
+      const container = document.getElementById('saved-builds-list');
+      const empty = document.getElementById('saved-builds-empty');
+
+      if (savedBuilds.length === 0) {
+        container.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+      let html = '';
+      savedBuilds.sort((a, b) => b.createdAt - a.createdAt).forEach(build => {
+        const date = new Date(build.createdAt).toLocaleDateString();
+        html += `
+          <div class="build-card">
+            <div class="build-card-header">
+              <div>
+                <div class="build-card-name">${escapeHtml(build.name)}</div>
+                <div class="build-card-meta">${date} • ${build.parts.length} parts</div>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <div class="build-card-price">$${build.totalPrice.toFixed(2)}</div>
+                <button class="btn btn-sm" onclick="loadBuild(${build.id})">Load</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteBuild(${build.id})">Delete</button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function loadBuild(id) {
+      loadSavedBuilds();
+      const build = savedBuilds.find(b => b.id === id);
+      if (!build) return;
+
+      if (confirm('Load this build? Current build will be replaced.')) {
+        currentBuild.parts = JSON.parse(JSON.stringify(build.parts));
+        renderPartsList();
+        updateTotalPrice();
+        saveCurrentBuild();
+        switchTab('build');
+      }
+    }
+
+    function deleteBuild(id) {
+      if (!confirm('Delete this build?')) return;
+
+      loadSavedBuilds();
+      savedBuilds = savedBuilds.filter(b => b.id !== id);
+      saveSavedBuilds();
+      loadSavedBuildsList();
+    }
+
+    function loadCompareBuilds() {
+      loadSavedBuilds();
+      const select1 = document.getElementById('compare-build-1');
+      const select2 = document.getElementById('compare-build-2');
+
+      select1.innerHTML = '<option value="">Select a build...</option>';
+      select2.innerHTML = '<option value="">Select a build...</option>';
+
+      savedBuilds.forEach(build => {
+        const option1 = document.createElement('option');
+        option1.value = build.id;
+        option1.textContent = `${build.name} ($${build.totalPrice.toFixed(2)})`;
+        select1.appendChild(option1);
+
+        const option2 = document.createElement('option');
+        option2.value = build.id;
+        option2.textContent = `${build.name} ($${build.totalPrice.toFixed(2)})`;
+        select2.appendChild(option2);
+      });
+    }
+
+    function updateCompareView() {
+      const id1 = document.getElementById('compare-build-1').value;
+      const id2 = document.getElementById('compare-build-2').value;
+
+      if (!id1 || !id2) {
+        document.getElementById('compare-view-toggle').style.display = 'none';
+        document.getElementById('compare-table-view').style.display = 'none';
+        document.getElementById('compare-card-view').style.display = 'none';
+        document.getElementById('compare-empty').style.display = 'block';
+        return;
+      }
+
+      document.getElementById('compare-empty').style.display = 'none';
+      document.getElementById('compare-view-toggle').style.display = 'flex';
+      
+      loadSavedBuilds();
+      const build1 = savedBuilds.find(b => b.id == id1);
+      const build2 = savedBuilds.find(b => b.id == id2);
+
+      if (!build1 || !build2) return;
+
+      renderCompareTable(build1, build2);
+      renderCompareCards(build1, build2);
+      setCompareView(compareViewMode);
+    }
+
+    function setCompareView(mode) {
+      compareViewMode = mode;
+      document.getElementById('btn-table-view').classList.toggle('btn-primary', mode === 'table');
+      document.getElementById('btn-card-view').classList.toggle('btn-primary', mode === 'card');
+      
+      document.getElementById('compare-table-view').style.display = mode === 'table' ? 'block' : 'none';
+      document.getElementById('compare-card-view').style.display = mode === 'card' ? 'block' : 'none';
+    }
+
+    function renderCompareTable(build1, build2) {
+      const allCategories = [...new Set([...build1.parts.map(p => p.category), ...build2.parts.map(p => p.category)])];
+      const table = document.getElementById('compare-table-content');
+      
+      let html = `
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>${escapeHtml(build1.name)}</th>
+            <th>${escapeHtml(build2.name)}</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      CATEGORIES.forEach(category => {
+        if (!allCategories.includes(category)) return;
+
+        const part1 = build1.parts.find(p => p.category === category);
+        const part2 = build2.parts.find(p => p.category === category);
+
+        html += `
+          <tr>
+            <td><strong>${category}</strong></td>
+            <td>${part1 ? `${escapeHtml(part1.name)}<br><small style="color: var(--muted);">${escapeHtml(part1.source || 'No source')}</small><br><strong style="color: var(--accent);">$${part1.price.toFixed(2)}</strong>` : '<em style="color: var(--muted);">Not included</em>'}</td>
+            <td>${part2 ? `${escapeHtml(part2.name)}<br><small style="color: var(--muted);">${escapeHtml(part2.source || 'No source')}</small><br><strong style="color: var(--accent);">$${part2.price.toFixed(2)}</strong>` : '<em style="color: var(--muted);">Not included</em>'}</td>
+          </tr>
+        `;
+      });
+
+      const priceDiff = build2.totalPrice - build1.totalPrice;
+      html += `
+          <tr style="border-top: 2px solid var(--border);">
+            <td><strong>Total</strong></td>
+            <td><strong style="color: var(--ok); font-size: 16px;">$${build1.totalPrice.toFixed(2)}</strong></td>
+            <td><strong style="color: var(--ok); font-size: 16px;">$${build2.totalPrice.toFixed(2)}</strong></td>
+          </tr>
+          <tr>
+            <td><strong>Difference</strong></td>
+            <td colspan="2"><strong style="color: ${priceDiff >= 0 ? 'var(--ok)' : 'var(--danger)'};">
+              ${priceDiff >= 0 ? '+' : ''}$${priceDiff.toFixed(2)}
+            </strong></td>
+          </tr>
+        </tbody>
+      `;
+
+      table.innerHTML = html;
+    }
+
+    function renderCompareCards(build1, build2) {
+      compareCardIndex = 0;
+      updateCompareCard();
+    }
+
+    function navigateCompareCard(direction) {
+      const id1 = document.getElementById('compare-build-1').value;
+      const id2 = document.getElementById('compare-build-2').value;
+      if (!id1 || !id2) return;
+
+      loadSavedBuilds();
+      const build1 = savedBuilds.find(b => b.id == id1);
+      const build2 = savedBuilds.find(b => b.id == id2);
+      if (!build1 || !build2) return;
+
+      compareCardIndex = (compareCardIndex + direction + 2) % 2;
+      updateCompareCard();
+    }
+
+    function updateCompareCard() {
+      const id1 = document.getElementById('compare-build-1').value;
+      const id2 = document.getElementById('compare-build-2').value;
+      if (!id1 || !id2) return;
+
+      loadSavedBuilds();
+      const build1 = savedBuilds.find(b => b.id == id1);
+      const build2 = savedBuilds.find(b => b.id == id2);
+      if (!build1 || !build2) return;
+
+      const builds = [build1, build2];
+      const current = builds[compareCardIndex];
+
+      document.getElementById('compare-card-indicator').textContent = `${compareCardIndex + 1} / 2`;
+      document.getElementById('compare-prev').disabled = compareCardIndex === 0;
+      document.getElementById('compare-next').disabled = compareCardIndex === 1;
+
+      const byCategory = {};
+      current.parts.forEach(part => {
+        if (!byCategory[part.category]) {
+          byCategory[part.category] = [];
+        }
+        byCategory[part.category].push(part);
+      });
+
+      let html = `
+        <div class="compare-card">
+          <div class="compare-card-header">
+            <div class="compare-card-name">${escapeHtml(current.name)}</div>
+            <div class="compare-card-price">$${current.totalPrice.toFixed(2)}</div>
+          </div>
+      `;
+
+      CATEGORIES.forEach(category => {
+        if (!byCategory[category] || byCategory[category].length === 0) return;
+
+        html += `
+          <div style="margin-bottom: 16px;">
+            <h4 style="margin: 0 0 8px 0; font-size: 13px; color: var(--muted);">${category}</h4>
+        `;
+
+        byCategory[category].forEach(part => {
+          html += `
+            <div class="part-item">
+              <div class="part-info">
+                <div class="part-name">${escapeHtml(part.name)}</div>
+                <div class="part-details">${escapeHtml(part.source || 'No source')}</div>
+              </div>
+              <div class="part-price">$${part.price.toFixed(2)}</div>
+            </div>
+          `;
+        });
+
+        html += `</div>`;
+      });
+
+      html += `</div>`;
+      document.getElementById('compare-card-content').innerHTML = html;
+    }
+
+    function exportToCSV() {
+      if (currentBuild.parts.length === 0) {
+        alert('No parts to export');
+        return;
+      }
+
+      const lines = ['Category,Part Name,Price,Source'];
+      
+      CATEGORIES.forEach(category => {
+        currentBuild.parts
+          .filter(p => p.category === category)
+          .forEach(part => {
+            const name = escapeCSV(part.name);
+            const source = escapeCSV(part.source || '');
+            lines.push(`${category},${name},${part.price.toFixed(2)},${source}`);
+          });
+      });
+
+      const total = currentBuild.parts.reduce((sum, part) => sum + part.price, 0);
+      lines.push(`Total,,${total.toFixed(2)},`);
+
+      const csv = lines.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pc-build-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importFromCSV(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const text = e.target.result;
+          const lines = text.split('\n').filter(line => line.trim());
+          
+          if (lines.length < 2) {
+            alert('Invalid CSV file: File appears to be empty or invalid');
+            return;
+          }
+
+          // Skip header row
+          const dataLines = lines.slice(1);
+          const parts = [];
+
+          for (let i = 0; i < dataLines.length; i++) {
+            const line = dataLines[i].trim();
+            if (!line || line.startsWith('Total,')) continue; // Skip total row
+
+            const parsed = parseCSVLine(line);
+            if (parsed.length < 3) continue; // Need at least category, name, price
+
+            const category = parsed[0].trim();
+            const name = parsed[1].trim();
+            const price = parseFloat(parsed[2].trim());
+            const source = parsed[3] ? parsed[3].trim() : '';
+
+            if (!category || !name || isNaN(price) || price < 0) {
+              continue; // Skip invalid rows
+            }
+
+            // Validate category
+            if (!CATEGORIES.includes(category)) {
+              continue; // Skip invalid categories
+            }
+
+            parts.push({
+              id: Date.now() + i,
+              category,
+              name,
+              price,
+              source
+            });
+          }
+
+          if (parts.length === 0) {
+            alert('No valid parts found in CSV file');
+            return;
+          }
+
+          if (currentBuild.parts.length > 0) {
+            if (!confirm(`Load ${parts.length} parts from CSV? Current build will be replaced.`)) {
+              event.target.value = ''; // Reset file input
+              return;
+            }
+          }
+
+          currentBuild.parts = parts;
+          renderPartsList();
+          updateTotalPrice();
+          saveCurrentBuild();
+          alert(`Successfully loaded ${parts.length} parts from CSV`);
+          event.target.value = ''; // Reset file input
+        } catch (error) {
+          alert('Error reading CSV file: ' + error.message);
+          event.target.value = ''; // Reset file input
+        }
+      };
+      reader.onerror = function() {
+        alert('Error reading file');
+        event.target.value = ''; // Reset file input
+      };
+      reader.readAsText(file);
+    }
+
+    function parseCSVLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            // Escaped quote
+            current += '"';
+            i++; // Skip next quote
+          } else {
+            // Toggle quote state
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          // End of field
+          result.push(current);
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      
+      // Add last field
+      result.push(current);
+      return result;
+    }
+
+    function clearBuild() {
+      if (currentBuild.parts.length === 0) {
+        return;
+      }
+
+      if (!confirm('Clear all parts from current build? This cannot be undone.')) {
+        return;
+      }
+
+      currentBuild.parts = [];
+      renderPartsList();
+      updateTotalPrice();
+      saveCurrentBuild();
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function escapeCSV(text) {
+      if (!text) return '';
+      if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+        return `"${text.replace(/"/g, '""')}"`;
+      }
+      return text;
+    }
+
+    // Initialize
+    loadCurrentBuild();
+    loadSavedBuilds();
+  </script>
+</body>
+</html>
+

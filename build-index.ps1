@@ -23,6 +23,7 @@ function Get-Icon {
     if ($FileName -like "*invoice*") { return "📄" }
     if ($FileName -like "*Recipt*" -or $FileName -like "*receipt*") { return "📋" }
     if ($FileName -like "*loan*" -or $FileName -like "*savings*") { return "💰" }
+    if ($FileName -like "*pc-builder*") { return "🖥️" }
     return "📱"
 }
 

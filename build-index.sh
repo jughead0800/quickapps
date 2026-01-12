@@ -20,6 +20,7 @@ get_icon() {
         *invoice*) echo "📄" ;;
         *Recipt*|*receipt*) echo "📋" ;;
         *loan*|*savings*) echo "💰" ;;
+        *pc-builder*) echo "🖥️" ;;
         *) echo "📱" ;;
     esac
 }
