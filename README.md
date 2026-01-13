@@ -2,6 +2,8 @@
 
 Simple, lightweight HTML-based applications that run entirely in your browser.
 
+see them live at quickapps.true-frontier.com
+
 ## What are QuickAPPS?
 
 QuickAPPS are lightweight, HTML-based applications designed to run entirely in your web browser. Built with simplicity and privacy in mind, these tools provide essential functionality without the bloat, ads, or data harvesting found in many modern applications.
