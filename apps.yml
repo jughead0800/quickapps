@@ -1,0 +1,41 @@
+# QuickAPPS metadata
+# The build scripts (build-index.sh / build-index.ps1) read this file
+# to generate index.html. Cards render in the order listed below.
+#
+# Format (keep indentation exact):
+#   apps:
+#     - file: filename-in-apps-folder.html
+#       title: Card title shown on the landing page
+#       emoji: "Single emoji shown on the card"
+#       summary: One-line description shown beneath the title on the card
+
+apps:
+  - file: Recipt Calc.html
+    title: Receipt Calculator
+    emoji: "📋"
+    summary: Track expenses and receipts with an easy-to-use calculator and CSV export.
+
+  - file: file-compare.html
+    title: File Compare Tool
+    emoji: "🔍"
+    summary: Compare two files side-by-side with diff highlighting, SHA256/MD5 hashes, and an interactive minimap.
+
+  - file: invoiceapp.html
+    title: Invoice Generator
+    emoji: "📄"
+    summary: Create professional invoices with line items, tax calculations, and PDF/print export.
+
+  - file: loan-savings-calculator.html
+    title: Loan & Savings Calculator
+    emoji: "💰"
+    summary: Calculate loan repayments and savings growth with adjustable rates, terms, and contributions.
+
+  - file: pc-builder.html
+    title: PC Builder
+    emoji: "🖥️"
+    summary: Plan and price out PC builds by component.
+
+  - file: rack-designer.html
+    title: Rack Designer
+    emoji: "📱"
+    summary: Design server rack layouts with drag-and-drop equipment placement.

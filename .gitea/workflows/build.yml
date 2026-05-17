@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'apps/**'
+      - 'apps.yml'
       - 'build-index.sh'
       - 'build-index.ps1'
       - '.gitea/workflows/build.yml'

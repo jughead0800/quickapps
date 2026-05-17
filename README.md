@@ -21,15 +21,23 @@ Every QuickAPP operates **100% client-side**, meaning all your data stays on you
 
 ## Available Apps
 
-All apps are located in the `apps/` folder. The `index.html` landing page is automatically generated from the apps in this folder.
+App HTML files live in the `apps/` folder. The set of cards rendered on the `index.html` landing page — along with each card's title and emoji — is defined in [`apps.yml`](apps.yml) at the repo root.
+
+## Adding a New App
+
+1. Drop the `.html` file into `apps/`.
+2. Add an entry to `apps.yml` with the filename, title, emoji, and a one-line summary.
+3. Run a build script (or push to `main` and let CI rebuild).
+
+Apps that exist in `apps/` but are not listed in `apps.yml` will not appear on the landing page. Cards render in the order listed in `apps.yml`.
 
 ## Building the Index
 
 The index page is automatically built when changes are pushed to the `main` branch. The build process:
 
-1. Scans the `apps/` folder for HTML files
-2. Extracts titles and generates app cards
-3. Updates `index.html` with links to all apps
+1. Reads `apps.yml` for the ordered list of apps and their metadata
+2. Generates a card per entry (skipping with a warning if the listed file is missing)
+3. Writes the result to `index.html`
 
 ### Manual Build
 
@@ -54,6 +62,7 @@ QuickAPPS/
 │   ├── file-compare.html
 │   ├── invoiceapp.html
 │   └── Recipt Calc.html
+├── apps.yml           # App metadata (title, emoji, summary, order)
 ├── index.html         # Auto-generated landing page
 ├── build-index.sh     # Bash build script
 ├── build-index.ps1    # PowerShell build script

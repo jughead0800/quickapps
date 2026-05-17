@@ -1,48 +1,65 @@
-# PowerShell build script to generate index.html from apps in the apps folder
+# PowerShell build script to generate index.html from apps.yml
+#
+# Usage (from repo root):
+#   pwsh -File .\build-index.ps1
+#   .\build-index.ps1
+#
+# Reads metadata from apps.yml (title, emoji, summary per app) and emits
+# a card for each entry into index.html, in the order listed.
 
-$AppsDir = "apps"
+# Run relative to this script's location so it works no matter where invoked.
+Set-Location -Path $PSScriptRoot
+
+$AppsDir   = "apps"
+$AppsYml   = "apps.yml"
 $OutputFile = "index.html"
 
-# Function to get title from HTML file
-function Get-Title {
-    param($FilePath)
-    $content = Get-Content $FilePath -Raw
-    if ($content -match '<title>(.*?)</title>') {
-        $title = $matches[1]
-        # Clean up title (remove "— Dark" or similar suffixes)
-        $title = $title -replace ' — .*$', '' -replace ' - .*$', ''
-        return $title
-    }
-    return "App"
+if (-not (Test-Path $AppsYml)) {
+    Write-Error "$AppsYml not found in $PSScriptRoot"
+    exit 1
 }
 
-# Function to get icon for app
-function Get-Icon {
-    param($FileName)
-    if ($FileName -like "*file-compare*") { return "🔍" }
-    if ($FileName -like "*invoice*") { return "📄" }
-    if ($FileName -like "*Recipt*" -or $FileName -like "*receipt*") { return "📋" }
-    if ($FileName -like "*loan*" -or $FileName -like "*savings*") { return "💰" }
-    if ($FileName -like "*pc-builder*") { return "🖥️" }
-    return "📱"
+# Tiny line-based YAML parser - sufficient for the strict apps.yml format.
+function Read-AppsYml {
+    param([string]$Path)
+
+    $entries = @()
+    $current = $null
+    $inApps  = $false
+
+    foreach ($line in Get-Content -LiteralPath $Path -Encoding UTF8) {
+        $trim = $line.Trim()
+        if ($trim -eq "" -or $trim.StartsWith("#")) { continue }
+
+        if ($trim -eq "apps:") { $inApps = $true; continue }
+        if (-not $inApps) { continue }
+
+        if ($line -match '^\s*-\s*file:\s*(.*)$') {
+            if ($current) { $entries += ,$current }
+            $current = [ordered]@{
+                file    = $matches[1].Trim().Trim('"')
+                title   = ""
+                emoji   = ""
+                summary = ""
+            }
+        }
+        elseif ($current -and $line -match '^\s+title:\s*(.*)$') {
+            $current.title = $matches[1].Trim().Trim('"')
+        }
+        elseif ($current -and $line -match '^\s+emoji:\s*(.*)$') {
+            $current.emoji = $matches[1].Trim().Trim('"')
+        }
+        elseif ($current -and $line -match '^\s+summary:\s*(.*)$') {
+            $current.summary = $matches[1].Trim().Trim('"')
+        }
+    }
+    if ($current) { $entries += ,$current }
+    return $entries
 }
 
-# Function to get description for app
-function Get-Description {
-    param($FileName)
-    if ($FileName -like "*file-compare*") {
-        return "Compare two files side-by-side with highlighted differences. Calculate SHA256 and MD5 hashes, view file metadata, and navigate large files using an interactive minimap overview."
-    }
-    if ($FileName -like "*invoice*") {
-        return "Create professional invoices with customizable business details, line items, tax calculations, and payment terms. Export to PDF or print directly from your browser."
-    }
-    if ($FileName -like "*Recipt*" -or $FileName -like "*receipt*") {
-        return "Track expenses and receipts with an easy-to-use calculator. Add items, edit amounts, and export your data to CSV format for record keeping."
-    }
-    return "A QuickAPP application."
-}
+$apps = Read-AppsYml -Path $AppsYml
 
-# Start building index.html
+# HTML template - head
 $html = @'
 <!DOCTYPE html>
 <html lang="en">
@@ -152,6 +169,13 @@ $html = @'
         .app-card .app-icon {
             font-size: 3em;
             margin-bottom: 10px;
+        }
+
+        .app-card .app-summary {
+            color: #b0b0b0;
+            font-size: 1em;
+            line-height: 1.5;
+            margin-top: 12px;
         }
 
 
@@ -268,17 +292,17 @@ $html = @'
         <div class="intro-section">
             <h2>What are QuickAPPS?</h2>
             <p>
-                QuickAPPS are lightweight, HTML-based applications designed to run entirely in your web browser. 
-                Built with simplicity and privacy in mind, these tools provide essential functionality without 
+                QuickAPPS are lightweight, HTML-based applications designed to run entirely in your web browser.
+                Built with simplicity and privacy in mind, these tools provide essential functionality without
                 the bloat, ads, or data harvesting found in many modern applications.
             </p>
             <p>
-                Every QuickAPP operates <span class="highlight">100% client-side</span>, meaning all your data 
-                stays on your device. No servers, no cloud storage, no tracking—just pure functionality when 
+                Every QuickAPP operates <span class="highlight">100% client-side</span>, meaning all your data
+                stays on your device. No servers, no cloud storage, no tracking—just pure functionality when
                 and where you need it.
             </p>
             <p>
-                Whether you're comparing files, generating invoices, or tracking expenses, QuickAPPS deliver 
+                Whether you're comparing files, generating invoices, or tracking expenses, QuickAPPS deliver
                 the features you need without the fluff you don't.
             </p>
 
@@ -295,8 +319,8 @@ $html = @'
             </div>
 
             <div class="privacy-note">
-                <strong>Privacy First:</strong> All QuickAPPS process data entirely in your browser. 
-                Files are never uploaded to servers, and settings are stored locally using your browser's 
+                <strong>Privacy First:</strong> All QuickAPPS process data entirely in your browser.
+                Files are never uploaded to servers, and settings are stored locally using your browser's
                 built-in storage. Your data never leaves your device.
             </div>
         </div>
@@ -304,22 +328,26 @@ $html = @'
         <div class="apps-grid">
 '@
 
-# Generate app cards
-$appFiles = Get-ChildItem -Path $AppsDir -Filter "*.html"
-foreach ($appFile in $appFiles) {
-    $appName = $appFile.BaseName
-    $appTitle = Get-Title -FilePath $appFile.FullName
-    $appIcon = Get-Icon -FileName $appName
-    
-    $html += @"
-            <a href="apps/$($appFile.Name)" target="_blank" class="app-card">
-                <div class="app-icon">$appIcon</div>
-                <h3>$appTitle</h3>
-            </a>
-"@
+# Generate app cards from apps.yml entries.
+# Build cards as line-per-element so we control newlines explicitly
+# (PowerShell here-strings don't preserve the trailing newline before the
+# closing terminator, so concatenating multiple cards glues them together).
+$html += "`n"
+foreach ($app in $apps) {
+    $appPath = Join-Path $AppsDir $app.file
+    if (-not (Test-Path -LiteralPath $appPath)) {
+        Write-Warning "$appPath listed in $AppsYml but not found - skipping"
+        continue
+    }
+
+    $html += "            <a href=""apps/$($app.file)"" target=""_blank"" class=""app-card"">`n"
+    $html += "                <div class=""app-icon"">$($app.emoji)</div>`n"
+    $html += "                <h3>$($app.title)</h3>`n"
+    $html += "                <p class=""app-summary"">$($app.summary)</p>`n"
+    $html += "            </a>`n"
 }
 
-# Close the apps grid and add footer
+# HTML template - tail
 $html += @'
         </div>
 
@@ -342,10 +370,10 @@ $html += @'
     </div>
 </body>
 </html>
-'@
+'@ + "`n"
 
-# Write to file
-$html | Out-File -FilePath $OutputFile -Encoding UTF8 -NoNewline
+# Write index.html as UTF-8 without BOM (works in both PS5.1 and PS7+)
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText((Join-Path $PSScriptRoot $OutputFile), $html, $utf8NoBom)
 
-Write-Host "Index.html generated successfully!"
-
+Write-Host "$OutputFile generated successfully ($($apps.Count) apps)."

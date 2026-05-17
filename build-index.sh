@@ -1,29 +1,15 @@
 #!/bin/sh
-# Build script to generate index.html from apps in the apps folder
-# Uses only basic POSIX shell commands - no external dependencies
+# Build script to generate index.html from apps.yml
+# Uses only basic POSIX shell commands - no external dependencies (no yq required)
 
 APPS_DIR="apps"
+APPS_YML="apps.yml"
 OUTPUT_FILE="index.html"
 
-# Function to get title from HTML file
-get_title() {
-    local file="$1"
-    # Use sed to extract title, works with busybox
-    sed -n 's/.*<title>\(.*\)<\/title>.*/\1/p' "$file" | head -n 1
-}
-
-# Function to get icon for app
-get_icon() {
-    local file="$1"
-    case "$file" in
-        *file-compare*) echo "🔍" ;;
-        *invoice*) echo "📄" ;;
-        *Recipt*|*receipt*) echo "📋" ;;
-        *loan*|*savings*) echo "💰" ;;
-        *pc-builder*) echo "🖥️" ;;
-        *) echo "📱" ;;
-    esac
-}
+if [ ! -f "$APPS_YML" ]; then
+    echo "Error: $APPS_YML not found in current directory" >&2
+    exit 1
+fi
 
 # Start building index.html
 cat > "$OUTPUT_FILE" << 'EOF'
@@ -135,6 +121,13 @@ cat > "$OUTPUT_FILE" << 'EOF'
         .app-card .app-icon {
             font-size: 3em;
             margin-bottom: 10px;
+        }
+
+        .app-card .app-summary {
+            color: #b0b0b0;
+            font-size: 1em;
+            line-height: 1.5;
+            margin-top: 12px;
         }
 
 
@@ -251,17 +244,17 @@ cat > "$OUTPUT_FILE" << 'EOF'
         <div class="intro-section">
             <h2>What are QuickAPPS?</h2>
             <p>
-                QuickAPPS are lightweight, HTML-based applications designed to run entirely in your web browser. 
-                Built with simplicity and privacy in mind, these tools provide essential functionality without 
+                QuickAPPS are lightweight, HTML-based applications designed to run entirely in your web browser.
+                Built with simplicity and privacy in mind, these tools provide essential functionality without
                 the bloat, ads, or data harvesting found in many modern applications.
             </p>
             <p>
-                Every QuickAPP operates <span class="highlight">100% client-side</span>, meaning all your data 
-                stays on your device. No servers, no cloud storage, no tracking—just pure functionality when 
+                Every QuickAPP operates <span class="highlight">100% client-side</span>, meaning all your data
+                stays on your device. No servers, no cloud storage, no tracking—just pure functionality when
                 and where you need it.
             </p>
             <p>
-                Whether you're comparing files, generating invoices, or tracking expenses, QuickAPPS deliver 
+                Whether you're comparing files, generating invoices, or tracking expenses, QuickAPPS deliver
                 the features you need without the fluff you don't.
             </p>
 
@@ -278,8 +271,8 @@ cat > "$OUTPUT_FILE" << 'EOF'
             </div>
 
             <div class="privacy-note">
-                <strong>Privacy First:</strong> All QuickAPPS process data entirely in your browser. 
-                Files are never uploaded to servers, and settings are stored locally using your browser's 
+                <strong>Privacy First:</strong> All QuickAPPS process data entirely in your browser.
+                Files are never uploaded to servers, and settings are stored locally using your browser's
                 built-in storage. Your data never leaves your device.
             </div>
         </div>
@@ -287,26 +280,67 @@ cat > "$OUTPUT_FILE" << 'EOF'
         <div class="apps-grid">
 EOF
 
-# Generate app cards
-for app_file in "$APPS_DIR"/*.html; do
-    if [ -f "$app_file" ]; then
-        # Extract filename without path and extension (works without basename)
-        app_fullname="${app_file##*/}"
-        app_name="${app_fullname%.html}"
-        app_title=$(get_title "$app_file")
-        app_icon=$(get_icon "$app_name")
-        
-        # Clean up title (remove "— Dark" or similar suffixes)
-        app_title=$(echo "$app_title" | sed 's/ — .*$//; s/ - .*$//')
-        
-        cat >> "$OUTPUT_FILE" << EOF
-            <a href="apps/$app_fullname" target="_blank" class="app-card">
-                <div class="app-icon">$app_icon</div>
-                <h3>$app_title</h3>
+# Emit a card for the currently buffered entry, then reset the buffer.
+emit_card() {
+    [ -z "$file" ] && return
+    if [ ! -f "$APPS_DIR/$file" ]; then
+        echo "Warning: $APPS_DIR/$file listed in $APPS_YML but not found - skipping" >&2
+        file=""; title=""; emoji=""; summary=""
+        return
+    fi
+    cat >> "$OUTPUT_FILE" << EOF
+            <a href="apps/$file" target="_blank" class="app-card">
+                <div class="app-icon">$emoji</div>
+                <h3>$title</h3>
+                <p class="app-summary">$summary</p>
             </a>
 EOF
-    fi
-done
+    file=""; title=""; emoji=""; summary=""
+}
+
+# Strip a leading "key: " prefix and surrounding double quotes from a value.
+strip_value() {
+    # $1 = full line, $2 = key (e.g. "file", "title")
+    echo "$1" | sed "s/^[[:space:]]*-\{0,1\}[[:space:]]*$2:[[:space:]]*//; s/^\"//; s/\"$//"
+}
+
+in_apps=0
+file=""; title=""; emoji=""; summary=""
+
+# Parse apps.yml line by line (POSIX sh, no external YAML dependency)
+while IFS= read -r line || [ -n "$line" ]; do
+    # Skip comments and blank lines
+    case "$line" in
+        \#*) continue ;;
+        "") continue ;;
+    esac
+
+    # Toggle into the apps: section
+    case "$line" in
+        apps:*) in_apps=1; continue ;;
+    esac
+    [ "$in_apps" -eq 0 ] && continue
+
+    case "$line" in
+        *-*file:*)
+            # New entry - flush the previous one first
+            emit_card
+            file=$(strip_value "$line" "file")
+            ;;
+        *title:*)
+            title=$(strip_value "$line" "title")
+            ;;
+        *emoji:*)
+            emoji=$(strip_value "$line" "emoji")
+            ;;
+        *summary:*)
+            summary=$(strip_value "$line" "summary")
+            ;;
+    esac
+done < "$APPS_YML"
+
+# Flush final entry
+emit_card
 
 # Close the apps grid and add footer
 cat >> "$OUTPUT_FILE" << 'EOF'
@@ -334,4 +368,3 @@ cat >> "$OUTPUT_FILE" << 'EOF'
 EOF
 
 echo "Index.html generated successfully!"
-
