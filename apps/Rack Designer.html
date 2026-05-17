@@ -1,0 +1,1613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rack Designer</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --surface: #1a1d24;
+    --surface-elev: #232730;
+    --border: #2e333d;
+    --text: #e6e8ec;
+    --text-muted: #8b919c;
+    --accent: #6366f1;
+    --danger: #ef4444;
+    --ok: #22c55e;
+    --ru-height: 26px;
+    --rack-width: 280px;
+    --gutter-width: 56px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, -apple-system, sans-serif; height: 100%; }
+  body { display: grid; grid-template-rows: auto 1fr; }
+  header { padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; gap: 12px; }
+  header h1 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 0.2px; }
+  header .status { color: var(--text-muted); font-size: 12px; }
+  main { display: grid; grid-template-columns: 240px 1fr 1fr; min-height: 0; }
+  .col { border-right: 1px solid var(--border); padding: 12px; overflow: auto; }
+  .col:last-child { border-right: 0; }
+  .col h2 { margin: 0 0 8px 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+  .rack-wrap { display: flex; align-items: stretch; justify-content: center; gap: 0; }
+  .gutter { width: var(--gutter-width); position: relative; }
+  .rack {
+    width: var(--rack-width);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px;
+    display: flex; flex-direction: column-reverse; /* RU 1 at bottom */
+  }
+  .ru-row {
+    height: var(--ru-height);
+    border-top: 1px dashed var(--border);
+    display: flex; align-items: center;
+    color: var(--text-muted);
+    font-size: 10px;
+    padding: 0 6px;
+    position: relative;
+  }
+  .ru-row:first-child { border-top: 0; }
+  .ru-num { width: 22px; flex-shrink: 0; text-align: right; padding-right: 6px; opacity: 0.7; }
+  .ru-row.front .ru-num { order: 0; }
+  .ru-row.rear .ru-num { order: 1; text-align: left; padding-right: 0; padding-left: 6px; }
+  .ru-row.rear { flex-direction: row-reverse; }
+  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+  .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  input[type="text"], input[type="number"] {
+    background: var(--surface-elev); color: var(--text);
+    border: 1px solid var(--border); border-radius: 3px; padding: 5px 8px; font: inherit;
+  }
+  input[type="text"]:focus, input[type="number"]:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+  .btn-row { display: flex; gap: 6px; margin-bottom: 6px; }
+  .btn {
+    background: var(--surface-elev); color: var(--text);
+    border: 1px solid var(--border); border-radius: 3px;
+    padding: 5px 8px; font: inherit; cursor: pointer; flex: 1;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .preset {
+    background: var(--surface-elev); border: 1px solid var(--border);
+    border-radius: 3px; padding: 6px 8px; margin-bottom: 4px; cursor: grab;
+    user-select: none;
+  }
+  .preset:hover { border-color: var(--accent); }
+  .preset.dragging { opacity: 0.4; }
+  .ru-row { position: relative; }
+  .device-tile {
+    position: absolute;
+    left: 28px; right: 4px; bottom: 1px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 0 8px;
+    display: flex; align-items: center;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.25);
+    cursor: grab;
+    user-select: none;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    z-index: 2;
+  }
+  .ru-row.rear .device-tile { left: 4px; right: 28px; }
+  .device-tile.dragging { opacity: 0.4; }
+  .drag-ghost {
+    position: fixed; pointer-events: none;
+    left: -1000px; top: -1000px;
+    width: 220px;
+    color: #fff; font-size: 11px; font-weight: 500;
+    padding: 4px 8px; border-radius: 2px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    display: flex; align-items: center;
+    z-index: 1000;
+    opacity: 0.85;
+  }
+  .ru-row.preview-ok { background: rgba(34, 197, 94, 0.18); }
+  .ru-row.preview-bad { background: rgba(239, 68, 68, 0.22); }
+  .popover {
+    position: fixed; z-index: 2000;
+    width: 260px; max-height: 90vh; overflow: auto;
+    background: var(--surface-elev);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+    padding: 10px;
+  }
+  .popover-title { font-weight: 600; margin-bottom: 8px; }
+  .popover-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+  .radio-row { display: flex; gap: 10px; }
+  .radio-row label { font-size: 11px; }
+  .color-grid {
+    display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px;
+  }
+  .swatch {
+    width: 22px; height: 22px; border-radius: 3px; border: 1px solid transparent;
+    cursor: pointer; padding: 0;
+  }
+  .swatch.selected { border: 2px solid var(--text); }
+  .popover-buttons { display: flex; gap: 6px; margin-top: 6px; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); }
+  .btn.danger { background: var(--danger); border-color: var(--danger); }
+  .device-tile.selected { box-shadow: 0 0 0 2px var(--text); }
+  .section-bar {
+    position: absolute;
+    width: 10px;
+    border-radius: 2px;
+    opacity: 0.9;
+    cursor: pointer;
+  }
+  .section-bar:hover { opacity: 1; box-shadow: 0 0 0 1px var(--text); }
+  .section-label {
+    position: absolute;
+    top: 4px; left: 12px;
+    font-size: 10px; color: var(--text);
+    white-space: nowrap;
+    background: rgba(0,0,0,0.55);
+    padding: 1px 4px; border-radius: 2px;
+    pointer-events: none;
+  }
+  .gutter { position: relative; }
+  body.section-mode .gutter { background: rgba(99, 102, 241, 0.08); cursor: crosshair; }
+  body.section-mode .gutter::after {
+    content: 'Drag in a gutter to define section range';
+    position: absolute; top: 4px; left: 4px;
+    font-size: 9px; color: var(--text-muted);
+    pointer-events: none;
+  }
+  .ru-row.section-preview { background: rgba(99, 102, 241, 0.18); }
+  .check-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); cursor: pointer; }
+  .check-row input[type="checkbox"] { margin: 0; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Rack Designer</h1>
+  <span class="status" id="status"></span>
+</header>
+<main>
+  <aside class="col" id="palette-col">
+    <h2>Toolbar</h2>
+    <div id="toolbar"></div>
+    <h2 style="margin-top:16px;">Presets</h2>
+    <div id="presets"></div>
+  </aside>
+  <section class="col" id="front-col">
+    <h2>Front</h2>
+    <div class="rack-wrap">
+      <div class="gutter" id="front-gutter"></div>
+      <div class="rack" id="front-rack"></div>
+    </div>
+  </section>
+  <section class="col" id="back-col">
+    <h2>Back</h2>
+    <div class="rack-wrap">
+      <div class="rack" id="rear-rack"></div>
+      <div class="gutter" id="rear-gutter"></div>
+    </div>
+  </section>
+</main>
+<script>
+'use strict';
+
+// =================================================================
+// Test harness — runs only when ?test=1 is in the URL.
+// Tests defined throughout the file via Tests.test(name, fn).
+// =================================================================
+const Tests = (() => {
+  const tests = [];
+  function test(name, fn) { tests.push({ name, fn }); }
+  function assert(cond, msg) { if (!cond) throw new Error(msg || 'assertion failed'); }
+  function assertEq(a, b, msg) {
+    const sa = JSON.stringify(a), sb = JSON.stringify(b);
+    if (sa !== sb) throw new Error(`${msg || 'not equal'}: ${sa} !== ${sb}`);
+  }
+  function run() {
+    const results = tests.map(t => {
+      try { t.fn(); return { name: t.name, passed: true }; }
+      catch (e) { return { name: t.name, passed: false, error: e }; }
+    });
+    const passed = results.filter(r => r.passed).length;
+    const status = document.getElementById('status');
+    if (status) {
+      const failed = results.length - passed;
+      status.textContent = `tests: ${passed}/${results.length} passed` + (failed ? ` — ${failed} FAILED (see console)` : '');
+      status.style.color = failed ? 'var(--danger)' : 'var(--ok)';
+    }
+    results.filter(r => !r.passed).forEach(r => console.error('FAIL:', r.name, r.error));
+    console.log(`Tests: ${passed}/${results.length} passed`);
+    return results;
+  }
+  return { test, run, assert, assertEq };
+})();
+
+// =================================================================
+// State module — single source of truth.
+// =================================================================
+const State = (() => {
+  const STORAGE_KEY = 'rack-designer:state:v1';
+  const listeners = new Set();
+  let state = null;
+
+  function defaultState() {
+    return {
+      rack: { name: 'My Rack', height_ru: 42 },
+      devices: [],
+      sections: []
+    };
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.rack && Array.isArray(parsed.devices) && Array.isArray(parsed.sections)) {
+          state = parsed;
+          return;
+        }
+      }
+    } catch (e) { /* fall through to default */ }
+    state = defaultState();
+  }
+
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch (e) { console.error('Failed to save state:', e); }
+  }
+
+  function get() { return state; }
+
+  function setState(updater) {
+    const next = typeof updater === 'function' ? updater(structuredClone(state)) : updater;
+    state = next;
+    save();
+    listeners.forEach(fn => { try { fn(state); } catch (e) { console.error(e); } });
+  }
+
+  function onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
+
+  function reset() { state = defaultState(); save(); listeners.forEach(fn => fn(state)); }
+
+  function nextDeviceId(s) {
+    const nums = s.devices.map(d => parseInt((d.id || '').replace(/^dev-/, ''), 10)).filter(n => !isNaN(n));
+    const max = nums.length ? Math.max(...nums) : 0;
+    return 'dev-' + String(max + 1).padStart(3, '0');
+  }
+  function nextSectionId(s) {
+    const nums = s.sections.map(d => parseInt((d.id || '').replace(/^sec-/, ''), 10)).filter(n => !isNaN(n));
+    const max = nums.length ? Math.max(...nums) : 0;
+    return 'sec-' + String(max + 1).padStart(3, '0');
+  }
+
+  return { load, get, setState, onChange, reset, defaultState, nextDeviceId, nextSectionId, STORAGE_KEY };
+})();
+
+// =================================================================
+// State tests
+// =================================================================
+Tests.test('State.defaultState has correct shape', () => {
+  const s = State.defaultState();
+  Tests.assertEq(s.rack.name, 'My Rack');
+  Tests.assertEq(s.rack.height_ru, 42);
+  Tests.assertEq(s.devices, []);
+  Tests.assertEq(s.sections, []);
+});
+
+Tests.test('State.nextDeviceId increments correctly', () => {
+  Tests.assertEq(State.nextDeviceId({ devices: [] }), 'dev-001');
+  Tests.assertEq(State.nextDeviceId({ devices: [{ id: 'dev-001' }, { id: 'dev-005' }] }), 'dev-006');
+});
+
+Tests.test('State.setState persists to localStorage', () => {
+  // Save current state, mutate to a sentinel, verify, restore.
+  const saved = localStorage.getItem(State.STORAGE_KEY);
+  try {
+    State.setState({ rack: { name: 'TEST', height_ru: 10 }, devices: [], sections: [] });
+    const raw = JSON.parse(localStorage.getItem(State.STORAGE_KEY));
+    Tests.assertEq(raw.rack.name, 'TEST');
+  } finally {
+    if (saved) localStorage.setItem(State.STORAGE_KEY, saved);
+    else localStorage.removeItem(State.STORAGE_KEY);
+    State.load();
+  }
+});
+
+// =================================================================
+// Palette — 32 fixed colors tuned for legibility on dark surface.
+// =================================================================
+const Palette = (() => {
+  const COLORS = [
+    '#ef4444', '#f97316', '#f59e0b', '#eab308',
+    '#84cc16', '#22c55e', '#10b981', '#14b8a6',
+    '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1',
+    '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
+    '#f43f5e', '#fb7185', '#fda4af', '#fcd34d',
+    '#a3e635', '#4ade80', '#34d399', '#2dd4bf',
+    '#22d3ee', '#60a5fa', '#818cf8', '#a78bfa',
+    '#c084fc', '#e879f9', '#f472b6', '#94a3b8'
+  ];
+
+  function nextUnused(devices, sections) {
+    const used = new Set([
+      ...(devices || []).map(d => d.color),
+      ...(sections || []).map(s => s.color)
+    ]);
+    for (const c of COLORS) if (!used.has(c)) return c;
+    // All in use → wrap to first.
+    return COLORS[0];
+  }
+
+  return { COLORS, nextUnused };
+})();
+
+// =================================================================
+// Palette tests
+// =================================================================
+Tests.test('Palette has 32 colors', () => {
+  Tests.assertEq(Palette.COLORS.length, 32);
+});
+
+Tests.test('Palette.nextUnused returns first when nothing used', () => {
+  Tests.assertEq(Palette.nextUnused([], []), Palette.COLORS[0]);
+});
+
+Tests.test('Palette.nextUnused skips devices and sections', () => {
+  const used = [{ color: Palette.COLORS[0] }];
+  const usedSec = [{ color: Palette.COLORS[1] }];
+  Tests.assertEq(Palette.nextUnused(used, usedSec), Palette.COLORS[2]);
+});
+
+Tests.test('Palette.nextUnused wraps to first when all in use', () => {
+  const devices = Palette.COLORS.map(c => ({ color: c }));
+  Tests.assertEq(Palette.nextUnused(devices, []), Palette.COLORS[0]);
+});
+
+// =================================================================
+// YamlCodec — purpose-built serializer/parser for our exact schema.
+// =================================================================
+const YamlCodec = (() => {
+  const EXPLAINER = `# Rack Designer Export — Format Guide
+# ====================================================================
+# A single server rack layout.
+#
+# rack.height_ru    : total rack units (the rack's capacity)
+# rack.ru_numbering : 'bottom-up' — RU 1 is the lowest slot, height_ru is the top
+#
+# devices[] : items mounted in the rack. Each device has:
+#   id        : stable unique identifier (string)
+#   label     : human-readable name shown on the device
+#   size_ru   : number of RUs the device occupies (integer >= 1)
+#   position  : the LOWEST RU number the device occupies (1..height_ru)
+#               A device with size_ru=2 at position=5 occupies RU 5 AND RU 6.
+#   side      : 'front' — visible on front view only
+#               'rear'  — visible on back view only
+#               'full'  — full-depth device, visible on BOTH views
+#   color     : hex color (#RRGGBB) used to render the device
+#   service   : (optional) explicit service this device belongs to. If
+#               omitted, service membership can be inferred from sections
+#               (see below).
+#
+# sections[] : named groupings shown as labeled brackets alongside the rack.
+#   id        : stable unique identifier
+#   name      : human-readable service name
+#   side      : 'front' | 'rear' | 'both' — which views show the bracket
+#   ru_start  : lowest RU covered (inclusive)
+#   ru_end    : highest RU covered (inclusive, >= ru_start)
+#   color     : hex color for the bracket
+#
+# Service membership rule:
+#   A device is considered part of a section when its RU range
+#   [position, position + size_ru - 1] is fully contained within
+#   [section.ru_start, section.ru_end] AND the device's side overlaps
+#   the section's side. Devices may also declare an explicit \`service\`
+#   when they sit outside any section's range.
+#
+# Invariants:
+#   - position + size_ru - 1 <= rack.height_ru
+#   - No two devices overlap on the same effective side. A 'full' device
+#     blocks the RU range for both 'front' and 'rear' placements.
+#   - ru_start <= ru_end <= rack.height_ru for every section.
+# ====================================================================
+`;
+
+  // Quote strings that need it (anything not a bare identifier).
+  const BARE_RE = /^[A-Za-z_][A-Za-z0-9_-]*$/;
+  function quote(s) {
+    if (s === '') return '""';
+    if (BARE_RE.test(s) && !['true','false','null','yes','no','on','off'].includes(s.toLowerCase())) return s;
+    return '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  }
+  function scalar(v) {
+    if (typeof v === 'number' && Number.isInteger(v)) return String(v);
+    return quote(String(v));
+  }
+
+  function toYaml(state) {
+    let out = EXPLAINER + '\n';
+    out += 'rack:\n';
+    out += `  name: ${quote(state.rack.name)}\n`;
+    out += `  height_ru: ${state.rack.height_ru}\n`;
+    out += `  ru_numbering: bottom-up\n`;
+    out += '\n';
+    out += 'devices:\n';
+    if (state.devices.length === 0) {
+      out += '  []\n';
+    } else {
+      for (const d of state.devices) {
+        out += `  - id: ${quote(d.id)}\n`;
+        out += `    label: ${quote(d.label)}\n`;
+        out += `    size_ru: ${d.size_ru}\n`;
+        out += `    position: ${d.position}\n`;
+        out += `    side: ${d.side}\n`;
+        out += `    color: ${quote(d.color)}\n`;
+        if (d.service) out += `    service: ${quote(d.service)}\n`;
+      }
+    }
+    out += '\n';
+    out += 'sections:\n';
+    if (state.sections.length === 0) {
+      out += '  []\n';
+    } else {
+      for (const s of state.sections) {
+        out += `  - id: ${quote(s.id)}\n`;
+        out += `    name: ${quote(s.name)}\n`;
+        out += `    side: ${s.side}\n`;
+        out += `    ru_start: ${s.ru_start}\n`;
+        out += `    ru_end: ${s.ru_end}\n`;
+        out += `    color: ${quote(s.color)}\n`;
+      }
+    }
+    return out;
+  }
+
+  // Parser for the restricted subset: top-level mapping with keys
+  // 'rack' (nested map), 'devices' (list of maps), 'sections' (list of maps).
+  // Scalars: integers, double-quoted strings, bare identifiers.
+  function unquote(s) {
+    s = s.trim();
+    if (s === '') return '';
+    if (s.startsWith('"') && s.endsWith('"')) {
+      return s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    }
+    if (/^-?\d+$/.test(s)) return parseInt(s, 10);
+    return s; // bare identifier
+  }
+
+  function fromYaml(text) {
+    // Strip comments (full-line and trailing) and blank lines.
+    const rawLines = text.split(/\r?\n/);
+    const lines = [];
+    for (const raw of rawLines) {
+      // Drop full-comment lines.
+      if (/^\s*#/.test(raw)) continue;
+      // Drop trailing comments — but not inside quoted strings.
+      let line = raw;
+      let inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"' && line[i-1] !== '\\') inQ = !inQ;
+        if (ch === '#' && !inQ) { line = line.slice(0, i); break; }
+      }
+      if (line.trim() === '') continue;
+      lines.push(line.replace(/\s+$/, '')); // strip trailing whitespace
+    }
+
+    function indentOf(line) { return line.match(/^ */)[0].length; }
+
+    const state = { rack: { name: 'My Rack', height_ru: 42 }, devices: [], sections: [] };
+
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      const ind = indentOf(line);
+      if (ind !== 0) throw new Error(`Unexpected indent at top level: "${line}"`);
+      const m = line.match(/^([A-Za-z_][\w-]*):\s*(.*)$/);
+      if (!m) throw new Error(`Unparseable top-level line: "${line}"`);
+      const key = m[1];
+      const rest = m[2].trim();
+      i++;
+      if (key === 'rack') {
+        // Nested map at indent 2.
+        const rack = {};
+        while (i < lines.length && indentOf(lines[i]) >= 2) {
+          const subm = lines[i].trim().match(/^([A-Za-z_][\w-]*):\s*(.*)$/);
+          if (!subm) throw new Error(`Unparseable rack line: "${lines[i]}"`);
+          rack[subm[1]] = unquote(subm[2]);
+          i++;
+        }
+        if (typeof rack.name !== 'string') throw new Error('rack.name missing or invalid');
+        if (typeof rack.height_ru !== 'number') throw new Error('rack.height_ru missing or invalid');
+        state.rack = { name: rack.name, height_ru: rack.height_ru };
+      } else if (key === 'devices' || key === 'sections') {
+        const list = [];
+        // Inline empty list?
+        if (rest === '[]') { state[key] = []; continue; }
+        // List items at indent 2, fields at indent 4.
+        while (i < lines.length && indentOf(lines[i]) >= 2) {
+          const itemLine = lines[i];
+          if (indentOf(itemLine) === 2 && itemLine.trim() === '[]') { i++; break; }
+          if (indentOf(itemLine) !== 2 || !itemLine.trim().startsWith('- ')) {
+            throw new Error(`Expected list item, got: "${itemLine}"`);
+          }
+          // First field is on the same line after "- ".
+          const item = {};
+          const firstField = itemLine.trim().slice(2);
+          const fm = firstField.match(/^([A-Za-z_][\w-]*):\s*(.*)$/);
+          if (!fm) throw new Error(`Unparseable first list field: "${itemLine}"`);
+          item[fm[1]] = unquote(fm[2]);
+          i++;
+          while (i < lines.length && indentOf(lines[i]) >= 4 && !lines[i].trim().startsWith('-')) {
+            const subm = lines[i].trim().match(/^([A-Za-z_][\w-]*):\s*(.*)$/);
+            if (!subm) throw new Error(`Unparseable list field line: "${lines[i]}"`);
+            item[subm[1]] = unquote(subm[2]);
+            i++;
+          }
+          list.push(item);
+        }
+        state[key] = list;
+      } else {
+        throw new Error(`Unknown top-level key: "${key}"`);
+      }
+    }
+
+    return state;
+  }
+
+  return { EXPLAINER, toYaml, fromYaml };
+})();
+
+// =================================================================
+// YamlCodec.toYaml tests
+// =================================================================
+Tests.test('toYaml emits leading explainer comment', () => {
+  const yaml = YamlCodec.toYaml(State.defaultState());
+  Tests.assert(yaml.startsWith('# Rack Designer Export'), 'must start with explainer');
+  Tests.assert(yaml.includes('ru_numbering : '),  // sanity-check key in explainer
+    'explainer must describe ru_numbering');
+});
+
+Tests.test('toYaml emits rack block', () => {
+  const yaml = YamlCodec.toYaml({ rack: { name: 'X', height_ru: 7 }, devices: [], sections: [] });
+  Tests.assert(yaml.includes('rack:\n  name: X\n  height_ru: 7'), 'rack block missing');
+  Tests.assert(yaml.includes('ru_numbering: bottom-up'), 'ru_numbering missing');
+});
+
+Tests.test('toYaml emits device with optional service', () => {
+  const d = { id: 'dev-001', label: 'web 1', size_ru: 2, position: 5, side: 'front', color: '#ff0000', service: 'Auth' };
+  const yaml = YamlCodec.toYaml({ rack: { name: 'X', height_ru: 10 }, devices: [d], sections: [] });
+  Tests.assert(yaml.includes('id: dev-001'), 'id missing');
+  Tests.assert(yaml.includes('label: "web 1"'), 'quoted label missing');
+  Tests.assert(yaml.includes('size_ru: 2'), 'size_ru missing');
+  Tests.assert(yaml.includes('service: Auth'), 'service missing');
+});
+
+Tests.test('toYaml emits empty devices/sections as []', () => {
+  const yaml = YamlCodec.toYaml(State.defaultState());
+  Tests.assert(yaml.includes('devices:\n  []'), 'empty devices block wrong');
+  Tests.assert(yaml.includes('sections:\n  []'), 'empty sections block wrong');
+});
+
+Tests.test('fromYaml round-trips default state', () => {
+  const orig = State.defaultState();
+  const parsed = YamlCodec.fromYaml(YamlCodec.toYaml(orig));
+  Tests.assertEq(parsed, orig);
+});
+
+Tests.test('fromYaml round-trips full state with devices and sections', () => {
+  const s = {
+    rack: { name: 'My Rack', height_ru: 42 },
+    devices: [
+      { id: 'dev-001', label: 'web 1', size_ru: 2, position: 5, side: 'front', color: '#ff0000' },
+      { id: 'dev-002', label: 'core sw', size_ru: 1, position: 42, side: 'full', color: '#00ff00', service: 'Network' }
+    ],
+    sections: [
+      { id: 'sec-001', name: 'Auth', side: 'front', ru_start: 5, ru_end: 10, color: '#0000ff' }
+    ]
+  };
+  const parsed = YamlCodec.fromYaml(YamlCodec.toYaml(s));
+  Tests.assertEq(parsed, s);
+});
+
+Tests.test('fromYaml ignores comments', () => {
+  const text = `# leading comment
+rack:
+  name: X
+  height_ru: 10
+  ru_numbering: bottom-up
+devices:
+  []
+sections:
+  []
+`;
+  const parsed = YamlCodec.fromYaml(text);
+  Tests.assertEq(parsed.rack.name, 'X');
+  Tests.assertEq(parsed.rack.height_ru, 10);
+});
+
+Tests.test('fromYaml rejects unknown top-level key', () => {
+  let threw = false;
+  try { YamlCodec.fromYaml('foo: 1\n'); } catch (e) { threw = true; }
+  Tests.assert(threw, 'should throw on unknown key');
+});
+
+// =================================================================
+// Validation — pure functions over state.
+// =================================================================
+const Validation = (() => {
+  // Effective side sets.
+  function sidesOf(side) {
+    if (side === 'front') return new Set(['front']);
+    if (side === 'rear') return new Set(['rear']);
+    if (side === 'full') return new Set(['front', 'rear']);
+    return new Set();
+  }
+
+  function rangeOf(device) {
+    return { lo: device.position, hi: device.position + device.size_ru - 1 };
+  }
+
+  // Two devices conflict iff their RU ranges intersect AND their effective
+  // side sets intersect.
+  function conflicts(a, b) {
+    const ra = rangeOf(a), rb = rangeOf(b);
+    if (ra.hi < rb.lo || rb.hi < ra.lo) return false;
+    const sa = sidesOf(a.side), sb = sidesOf(b.side);
+    for (const s of sa) if (sb.has(s)) return true;
+    return false;
+  }
+
+  // Returns array of error strings; empty array means valid.
+  function validateState(state) {
+    const errors = [];
+    const H = state.rack.height_ru;
+    if (!Number.isInteger(H) || H < 1 || H > 96) errors.push(`rack.height_ru must be 1..96, got ${H}`);
+
+    for (const d of state.devices) {
+      if (!Number.isInteger(d.size_ru) || d.size_ru < 1) errors.push(`device ${d.id}: size_ru must be >= 1`);
+      if (!Number.isInteger(d.position) || d.position < 1) errors.push(`device ${d.id}: position must be >= 1`);
+      if (d.position + d.size_ru - 1 > H) errors.push(`device ${d.id}: extends beyond rack (position=${d.position}, size=${d.size_ru}, rack=${H})`);
+      if (!['front','rear','full'].includes(d.side)) errors.push(`device ${d.id}: invalid side "${d.side}"`);
+    }
+    for (let i = 0; i < state.devices.length; i++) {
+      for (let j = i + 1; j < state.devices.length; j++) {
+        if (conflicts(state.devices[i], state.devices[j])) {
+          errors.push(`devices ${state.devices[i].id} and ${state.devices[j].id} overlap`);
+        }
+      }
+    }
+    for (const s of state.sections) {
+      if (!Number.isInteger(s.ru_start) || !Number.isInteger(s.ru_end)) errors.push(`section ${s.id}: ru_start/ru_end must be integers`);
+      if (s.ru_start < 1 || s.ru_end > H || s.ru_start > s.ru_end) errors.push(`section ${s.id}: range invalid (${s.ru_start}..${s.ru_end}, rack=${H})`);
+      if (!['front','rear','both'].includes(s.side)) errors.push(`section ${s.id}: invalid side "${s.side}"`);
+    }
+    return errors;
+  }
+
+  // Test if placing a candidate device would conflict with any existing.
+  // `ignoreId` lets you exclude a device being moved.
+  function canPlace(state, candidate, ignoreId) {
+    const H = state.rack.height_ru;
+    if (candidate.position < 1) return false;
+    if (candidate.position + candidate.size_ru - 1 > H) return false;
+    for (const d of state.devices) {
+      if (ignoreId && d.id === ignoreId) continue;
+      if (conflicts(d, candidate)) return false;
+    }
+    return true;
+  }
+
+  // Containment-based section membership: device is in section if its full
+  // RU range is inside the section's range AND its effective side set
+  // overlaps the section's side set.
+  function isDeviceInSection(device, section) {
+    const dr = rangeOf(device);
+    if (dr.lo < section.ru_start || dr.hi > section.ru_end) return false;
+    const ds = sidesOf(device.side);
+    const ss = section.side === 'both' ? new Set(['front','rear']) :
+               section.side === 'front' ? new Set(['front']) : new Set(['rear']);
+    for (const s of ds) if (ss.has(s)) return true;
+    return false;
+  }
+
+  return { sidesOf, rangeOf, conflicts, validateState, canPlace, isDeviceInSection };
+})();
+
+// =================================================================
+// Validation tests
+// =================================================================
+Tests.test('conflicts: same side overlapping', () => {
+  const a = { id: 'a', position: 5, size_ru: 2, side: 'front' };
+  const b = { id: 'b', position: 6, size_ru: 1, side: 'front' };
+  Tests.assert(Validation.conflicts(a, b));
+});
+
+Tests.test('conflicts: opposite sides do not conflict', () => {
+  const a = { id: 'a', position: 5, size_ru: 2, side: 'front' };
+  const b = { id: 'b', position: 5, size_ru: 2, side: 'rear' };
+  Tests.assert(!Validation.conflicts(a, b));
+});
+
+Tests.test('conflicts: full conflicts with front and rear', () => {
+  const full = { id: 'a', position: 5, size_ru: 1, side: 'full' };
+  const front = { id: 'b', position: 5, size_ru: 1, side: 'front' };
+  const rear = { id: 'c', position: 5, size_ru: 1, side: 'rear' };
+  Tests.assert(Validation.conflicts(full, front));
+  Tests.assert(Validation.conflicts(full, rear));
+});
+
+Tests.test('conflicts: non-overlapping RU does not conflict', () => {
+  const a = { id: 'a', position: 5, size_ru: 1, side: 'front' };
+  const b = { id: 'b', position: 6, size_ru: 1, side: 'front' };
+  Tests.assert(!Validation.conflicts(a, b));
+});
+
+Tests.test('canPlace ignores own id when moving', () => {
+  const state = { rack: { height_ru: 42 }, devices: [{ id: 'a', position: 5, size_ru: 2, side: 'front' }], sections: [] };
+  Tests.assert(Validation.canPlace(state, { id: 'a', position: 5, size_ru: 2, side: 'front' }, 'a'));
+});
+
+Tests.test('isDeviceInSection: contained device on matching side', () => {
+  const dev = { position: 5, size_ru: 2, side: 'front' };
+  const sec = { side: 'front', ru_start: 4, ru_end: 8 };
+  Tests.assert(Validation.isDeviceInSection(dev, sec));
+});
+
+Tests.test('isDeviceInSection: device extending beyond section is NOT contained', () => {
+  const dev = { position: 5, size_ru: 5, side: 'front' };
+  const sec = { side: 'front', ru_start: 4, ru_end: 8 };
+  Tests.assert(!Validation.isDeviceInSection(dev, sec));
+});
+
+Tests.test('validateState: empty state is valid', () => {
+  Tests.assertEq(Validation.validateState(State.defaultState()), []);
+});
+
+Tests.test('validateState: overlapping devices flagged', () => {
+  const s = {
+    rack: { name: 'X', height_ru: 42 },
+    devices: [
+      { id: 'a', label: 'a', size_ru: 2, position: 5, side: 'front', color: '#fff' },
+      { id: 'b', label: 'b', size_ru: 1, position: 6, side: 'front', color: '#000' }
+    ],
+    sections: []
+  };
+  Tests.assert(Validation.validateState(s).length > 0);
+});
+
+// =================================================================
+// Renderer — pure function of state, rebuilds DOM on every change.
+// =================================================================
+const Renderer = (() => {
+  function el(tag, opts = {}, children = []) {
+    const e = document.createElement(tag);
+    if (opts.cls) e.className = opts.cls;
+    if (opts.id) e.id = opts.id;
+    if (opts.text != null) e.textContent = opts.text;
+    if (opts.html != null) e.innerHTML = opts.html;
+    if (opts.attrs) for (const [k, v] of Object.entries(opts.attrs)) e.setAttribute(k, v);
+    if (opts.style) for (const [k, v] of Object.entries(opts.style)) e.style[k] = v;
+    if (opts.on) for (const [k, fn] of Object.entries(opts.on)) e.addEventListener(k, fn);
+    for (const c of children) if (c != null) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    return e;
+  }
+
+  const PRESETS = [
+    { name: 'Server 1U', size_ru: 1 },
+    { name: 'Server 2U', size_ru: 2 },
+    { name: 'Server 4U', size_ru: 4 },
+    { name: 'Switch 1U', size_ru: 1 },
+    { name: 'Patch panel 1U', size_ru: 1 },
+    { name: 'PDU 1U', size_ru: 1 }
+  ];
+
+  function renderToolbar(state) {
+    const box = document.getElementById('toolbar');
+    box.replaceChildren(
+      el('div', { cls: 'field' }, [
+        el('label', { text: 'Rack name', cls: 'lbl' }),
+        el('input', {
+          attrs: { type: 'text', value: state.rack.name },
+          on: { change: e => State.setState(s => { s.rack.name = e.target.value; return s; }) }
+        })
+      ]),
+      el('div', { cls: 'field' }, [
+        el('label', { text: 'Height (RU)', cls: 'lbl' }),
+        el('input', {
+          attrs: { type: 'number', min: '1', max: '96', value: String(state.rack.height_ru) },
+          on: { change: e => {
+            const v = parseInt(e.target.value, 10);
+            if (isNaN(v) || v < 1 || v > 96) { e.target.value = String(state.rack.height_ru); return; }
+            const cur = State.get();
+            const overflowingDev = cur.devices.find(d => d.position + d.size_ru - 1 > v);
+            const overflowingSec = cur.sections.find(s => s.ru_end > v);
+            if (overflowingDev || overflowingSec) {
+              const what = overflowingDev ? `device "${overflowingDev.label}"` : `section "${overflowingSec.name}"`;
+              alert(`Cannot shrink to ${v} RU: ${what} extends beyond. Move or delete it first.`);
+              e.target.value = String(cur.rack.height_ru);
+              return;
+            }
+            State.setState(s => { s.rack.height_ru = v; return s; });
+          }}
+        })
+      ]),
+      (() => {
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = Settings.get('scrollLock');
+        cb.addEventListener('change', e => Settings.set('scrollLock', e.target.checked));
+        const label = el('label', { cls: 'check-row' }, [cb, ' Lock scroll (front/back)']);
+        return el('div', { cls: 'field' }, [label]);
+      })(),
+      el('div', { cls: 'btn-row' }, [
+        el('button', { text: 'Export YAML', cls: 'btn', attrs: { id: 'btn-export' } }),
+        el('button', { text: 'Import YAML', cls: 'btn', attrs: { id: 'btn-import' } })
+      ]),
+      el('div', { cls: 'btn-row' }, [
+        el('button', { text: '+ Custom device', cls: 'btn', attrs: { id: 'btn-custom' } }),
+        el('button', { text: '+ Section', cls: 'btn', attrs: { id: 'btn-section' } })
+      ])
+    );
+  }
+
+  function renderPresets() {
+    const box = document.getElementById('presets');
+    box.replaceChildren(
+      ...PRESETS.map(p => el('div', {
+        cls: 'preset',
+        attrs: { 'data-preset-name': p.name, 'data-preset-size': String(p.size_ru) },
+        text: p.name
+      }))
+    );
+  }
+
+  function renderRack(side, state) {
+    const rack = document.getElementById(side === 'front' ? 'front-rack' : 'rear-rack');
+    rack.replaceChildren();
+    const H = state.rack.height_ru;
+    // Map RU number -> device occupying its bottom (only one per RU per side).
+    const bottomOf = new Map();
+    for (const d of state.devices) {
+      const sides = Validation.sidesOf(d.side);
+      if (!sides.has(side)) continue;
+      bottomOf.set(d.position, d);
+    }
+    // Track RUs already covered by a multi-RU device starting below.
+    const covered = new Set();
+    for (let ru = 1; ru <= H; ru++) {
+      const row = el('div', {
+        cls: `ru-row ${side}`,
+        attrs: { 'data-ru': String(ru), 'data-side': side }
+      }, [el('span', { cls: 'ru-num', text: String(ru) })]);
+
+      if (covered.has(ru)) {
+        // This RU is the middle/top of a multi-RU device drawn at its bottom.
+        // Leave the row mostly empty (RU number still shows).
+        row.classList.add('ru-covered');
+      } else if (bottomOf.has(ru)) {
+        const d = bottomOf.get(ru);
+        // Compute border tint from sections that fully contain this device.
+        const tintSection = state.sections.find(s => Validation.isDeviceInSection(d, s));
+        const tile = el('div', {
+          cls: 'device-tile',
+          attrs: { 'data-device-id': d.id },
+          style: {
+            background: d.color,
+            // Tile spans (size_ru) rows but is drawn inside the bottom row,
+            // visually extending upward via height. Since the rack uses
+            // column-reverse, we set height to size_ru * row height and
+            // absolutely position upward.
+            height: `calc(var(--ru-height) * ${d.size_ru} - 2px)`,
+            borderLeft: tintSection ? `2px solid ${tintSection.color}` : '0'
+          },
+          text: d.label
+        });
+        row.appendChild(tile);
+        // Mark the RUs above this one as covered.
+        for (let k = 1; k < d.size_ru; k++) covered.add(ru + k);
+      }
+      rack.appendChild(row);
+    }
+  }
+
+  function renderGutter(side, state) {
+    const gutter = document.getElementById(side === 'front' ? 'front-gutter' : 'rear-gutter');
+    gutter.replaceChildren();
+    const H = state.rack.height_ru;
+    const rackEl = document.getElementById(side === 'front' ? 'front-rack' : 'rear-rack');
+    // Match the rack's effective row height including its 6px padding-top inside.
+    const rackPaddingTop = 6;
+
+    // Filter sections visible on this side.
+    const visible = state.sections.filter(s => s.side === 'both' || s.side === side);
+    // To handle overlapping brackets, lay out in columns. Simple greedy: assign each section to the first column where it doesn't overlap an already-placed section.
+    const cols = [];
+    for (const sec of visible) {
+      let placed = false;
+      for (const col of cols) {
+        const overlaps = col.some(s2 => !(sec.ru_end < s2.ru_start || s2.ru_end < sec.ru_start));
+        if (!overlaps) { col.push(sec); placed = true; break; }
+      }
+      if (!placed) cols.push([sec]);
+    }
+
+    const colWidth = 14;
+    gutter.style.position = 'relative';
+    // Match the rack's vertical layout: column-reverse means RU 1 sits at the bottom.
+    // We position bars by computing the bottom offset of ru_start.
+    // RU number r occupies rows from bottom upward: bottom_offset = (r - 1) * rowH + rackPaddingTop.
+    // bracket height = (ru_end - ru_start + 1) * rowH.
+    const rowH = 26; // matches --ru-height
+
+    cols.forEach((col, ci) => {
+      for (const sec of col) {
+        const bar = document.createElement('div');
+        bar.className = 'section-bar';
+        bar.setAttribute('data-section-id', sec.id);
+        const bottom = (sec.ru_start - 1) * rowH + rackPaddingTop + 1; // +1 for rack border
+        const height = (sec.ru_end - sec.ru_start + 1) * rowH - 2;
+        bar.style.bottom = bottom + 'px';
+        bar.style.height = height + 'px';
+        bar.style.background = sec.color;
+        if (side === 'front') bar.style.right = (4 + ci * colWidth) + 'px';
+        else bar.style.left = (4 + ci * colWidth) + 'px';
+        bar.title = sec.name;
+        const lbl = document.createElement('span');
+        lbl.className = 'section-label';
+        lbl.textContent = sec.name;
+        bar.appendChild(lbl);
+        gutter.appendChild(bar);
+      }
+    });
+  }
+
+  function renderAll() {
+    const state = State.get();
+    renderToolbar(state);
+    renderPresets();
+    renderRack('front', state);
+    renderRack('rear', state);
+    renderGutter('front', state);
+    renderGutter('rear', state);
+  }
+
+  return { renderAll };
+})();
+
+// =================================================================
+// DragController — pointer-event based; handles palette→rack and
+// in-rack repositioning (in-rack drag added in Task 10).
+// =================================================================
+const DragController = (() => {
+  let dragging = null; // { kind: 'preset'|'device', size_ru, label, color, sourceId?, ghost, originX, originY }
+  let lastTarget = null; // { rack, side, ru, ok }
+
+  function findRuUnderCursor(clientX, clientY) {
+    const el = document.elementFromPoint(clientX, clientY);
+    if (!el) return null;
+    const row = el.closest('.ru-row');
+    if (!row) return null;
+    return {
+      side: row.getAttribute('data-side'),
+      ru: parseInt(row.getAttribute('data-ru'), 10),
+      row
+    };
+  }
+
+  function clearPreview() {
+    document.querySelectorAll('.ru-row.preview-ok, .ru-row.preview-bad')
+      .forEach(r => r.classList.remove('preview-ok', 'preview-bad'));
+  }
+
+  function showPreview(side, bottomRu, size, ok) {
+    clearPreview();
+    const rackId = side === 'front' ? 'front-rack' : 'rear-rack';
+    const rack = document.getElementById(rackId);
+    for (let k = 0; k < size; k++) {
+      const row = rack.querySelector(`.ru-row[data-ru="${bottomRu + k}"]`);
+      if (row) row.classList.add(ok ? 'preview-ok' : 'preview-bad');
+    }
+  }
+
+  function makeGhost(label, color, size_ru) {
+    const g = document.createElement('div');
+    g.className = 'drag-ghost';
+    g.textContent = label;
+    g.style.background = color;
+    g.style.height = `calc(var(--ru-height) * ${size_ru} - 2px)`;
+    document.body.appendChild(g);
+    return g;
+  }
+
+  function onPointerMove(e) {
+    if (!dragging) return;
+    dragging.ghost.style.left = (e.clientX + 8) + 'px';
+    dragging.ghost.style.top = (e.clientY + 8) + 'px';
+    const t = findRuUnderCursor(e.clientX, e.clientY);
+    if (!t) { clearPreview(); lastTarget = null; return; }
+    const candidate = {
+      id: dragging.sourceId || '__candidate__',
+      size_ru: dragging.size_ru, position: t.ru, side: t.side,
+      label: '', color: ''
+    };
+    const ok = Validation.canPlace(State.get(), candidate, dragging.sourceId);
+    showPreview(t.side, t.ru, dragging.size_ru, ok);
+    lastTarget = { side: t.side, ru: t.ru, ok };
+  }
+
+  function onPointerUp(e) {
+    if (!dragging) return;
+    if (lastTarget && lastTarget.ok) {
+      if (dragging.kind === 'preset') {
+        State.setState(s => {
+          s.devices.push({
+            id: State.nextDeviceId(s),
+            label: dragging.label,
+            size_ru: dragging.size_ru,
+            position: lastTarget.ru,
+            side: lastTarget.side,
+            color: Palette.nextUnused(s.devices, s.sections)
+          });
+          return s;
+        });
+      } else if (dragging.kind === 'device') {
+        State.setState(s => {
+          const d = s.devices.find(x => x.id === dragging.sourceId);
+          if (d) {
+            d.position = lastTarget.ru;
+            // Preserve 'full' across side flips; otherwise adopt target side.
+            if (d.side !== 'full') d.side = lastTarget.side;
+          }
+          return s;
+        });
+      }
+    }
+    cleanup();
+  }
+
+  function cleanup() {
+    if (dragging && dragging.ghost) dragging.ghost.remove();
+    document.querySelectorAll('.dragging').forEach(e => e.classList.remove('dragging'));
+    clearPreview();
+    dragging = null;
+    lastTarget = null;
+    document.removeEventListener('pointermove', onPointerMove);
+    document.removeEventListener('pointerup', onPointerUp);
+  }
+
+  function attachPresetDrag() {
+    document.getElementById('presets').addEventListener('pointerdown', e => {
+      const tile = e.target.closest('.preset');
+      if (!tile) return;
+      e.preventDefault();
+      const label = tile.getAttribute('data-preset-name');
+      const size_ru = parseInt(tile.getAttribute('data-preset-size'), 10);
+      const color = Palette.nextUnused(State.get().devices, State.get().sections);
+      tile.classList.add('dragging');
+      const ghost = makeGhost(label, color, size_ru);
+      dragging = { kind: 'preset', label, size_ru, color, ghost };
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', onPointerUp);
+    });
+  }
+
+  function attachDeviceDrag() {
+    let pendingTile = null;
+    let downX = 0, downY = 0, moved = false;
+
+    document.addEventListener('pointerdown', e => {
+      const tile = e.target.closest('.device-tile');
+      if (!tile) return;
+      if (e.target.closest('.popover')) return;
+      e.preventDefault();
+      pendingTile = tile;
+      downX = e.clientX; downY = e.clientY; moved = false;
+
+      const startDrag = () => {
+        const deviceId = tile.getAttribute('data-device-id');
+        const d = State.get().devices.find(x => x.id === deviceId);
+        if (!d) return;
+        tile.classList.add('dragging');
+        const ghost = makeGhost(d.label, d.color, d.size_ru);
+        dragging = { kind: 'device', label: d.label, size_ru: d.size_ru, color: d.color, sourceId: d.id, ghost };
+      };
+
+      const moveCheck = mv => {
+        if (Math.abs(mv.clientX - downX) > 4 || Math.abs(mv.clientY - downY) > 4) {
+          moved = true;
+          document.removeEventListener('pointermove', moveCheck);
+          // Swap the pending click handler for the real drag-release handler
+          // BEFORE the user lifts the pointer, otherwise the new listener
+          // wouldn't fire for the in-flight pointerup event.
+          document.removeEventListener('pointerup', upCheck);
+          startDrag();
+          document.addEventListener('pointermove', onPointerMove);
+          document.addEventListener('pointerup', onPointerUp);
+          // Trigger first preview update immediately.
+          onPointerMove(mv);
+        }
+      };
+      const upCheck = () => {
+        // moveCheck swaps us out before pointerup if a drag started, so by
+        // the time we run we know it was a click.
+        document.removeEventListener('pointermove', moveCheck);
+        document.removeEventListener('pointerup', upCheck);
+        openDeviceEditor(tile);
+        pendingTile = null;
+      };
+      document.addEventListener('pointermove', moveCheck);
+      document.addEventListener('pointerup', upCheck);
+    });
+  }
+
+  function openDeviceEditor(tile) {
+    document.querySelectorAll('.device-tile.selected').forEach(t => t.classList.remove('selected'));
+    tile.classList.add('selected');
+    const deviceId = tile.getAttribute('data-device-id');
+    const d = State.get().devices.find(x => x.id === deviceId);
+    if (!d) return;
+    Popover.open(tile, `Edit device (${d.id})`, [
+      { key: 'label', label: 'Label', type: 'text', value: d.label },
+      { key: 'size_ru', label: 'Size (U)', type: 'number', min: 1, max: 10, value: d.size_ru },
+      { key: 'side', label: 'Side', type: 'radio', options: ['front','rear','full'], value: d.side },
+      { key: 'color', label: 'Color', type: 'color', value: d.color },
+      { key: 'service', label: 'Service (optional)', type: 'text', value: d.service || '' }
+    ],
+    values => {
+      State.setState(s => {
+        const dev = s.devices.find(x => x.id === d.id);
+        if (!dev) return s;
+        const candidate = { ...dev, label: values.label, size_ru: values.size_ru, side: values.side, color: values.color };
+        if (!Validation.canPlace(s, candidate, dev.id)) {
+          alert('Cannot apply: device would overlap or extend beyond the rack at its current position.');
+          return s;
+        }
+        dev.label = values.label;
+        dev.size_ru = values.size_ru;
+        dev.side = values.side;
+        dev.color = values.color;
+        if (values.service && values.service.trim()) dev.service = values.service.trim();
+        else delete dev.service;
+        return s;
+      });
+    },
+    () => {
+      if (!confirm(`Delete device "${d.label}"?`)) return;
+      State.setState(s => { s.devices = s.devices.filter(x => x.id !== d.id); return s; });
+    });
+  }
+
+  function addCustomDevice() {
+    const s = State.get();
+    const H = s.rack.height_ru;
+    // Find the lowest free RU on the front side for a 1U device.
+    let placed = null;
+    for (let ru = 1; ru <= H; ru++) {
+      const candidate = { id: '__new__', size_ru: 1, position: ru, side: 'front' };
+      if (Validation.canPlace(s, candidate)) { placed = ru; break; }
+    }
+    if (placed == null) {
+      const btn = document.getElementById('btn-custom');
+      const orig = btn.textContent;
+      btn.textContent = 'No free RU on front view';
+      btn.disabled = true;
+      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1500);
+      return;
+    }
+    let newId;
+    State.setState(s2 => {
+      newId = State.nextDeviceId(s2);
+      s2.devices.push({
+        id: newId,
+        label: 'New device',
+        size_ru: 1,
+        position: placed,
+        side: 'front',
+        color: Palette.nextUnused(s2.devices, s2.sections)
+      });
+      return s2;
+    });
+    // Open editor on the newly rendered tile.
+    requestAnimationFrame(() => {
+      const tile = document.querySelector(`.device-tile[data-device-id="${newId}"]`);
+      if (tile) openDeviceEditor(tile);
+    });
+  }
+
+  let sectionMode = false;
+  let sectionDrag = null; // { side, start, end, hint }
+
+  function setSectionMode(on) {
+    sectionMode = on;
+    document.body.classList.toggle('section-mode', on);
+    const btn = document.getElementById('btn-section');
+    if (btn) btn.textContent = on ? 'Cancel section' : '+ Section';
+  }
+
+  function gutterRuFromEvent(e) {
+    // Determine which gutter and which RU based on the mouse position relative to the corresponding rack.
+    for (const side of ['front','rear']) {
+      const rackId = side === 'front' ? 'front-rack' : 'rear-rack';
+      const gutterId = side === 'front' ? 'front-gutter' : 'rear-gutter';
+      const gutter = document.getElementById(gutterId);
+      if (!gutter) continue;
+      const gr = gutter.getBoundingClientRect();
+      if (e.clientX < gr.left || e.clientX > gr.right) continue;
+      if (e.clientY < gr.top || e.clientY > gr.bottom) continue;
+      const rack = document.getElementById(rackId);
+      const rr = rack.getBoundingClientRect();
+      const rowH = 26;
+      const rackPaddingTop = 6;
+      // Bottom of RU 1 is at rr.bottom - rackPaddingTop - 1 (border).
+      const bottom = rr.bottom - rackPaddingTop - 1;
+      const offsetFromBottom = bottom - e.clientY;
+      const ru = Math.max(1, Math.min(State.get().rack.height_ru, Math.ceil(offsetFromBottom / rowH)));
+      return { side, ru };
+    }
+    return null;
+  }
+
+  function attachSectionCreation() {
+    document.addEventListener('click', e => {
+      if (e.target && e.target.id === 'btn-section') setSectionMode(!sectionMode);
+    });
+    document.addEventListener('pointerdown', e => {
+      if (!sectionMode) return;
+      const hit = gutterRuFromEvent(e);
+      if (!hit) return;
+      e.preventDefault();
+      sectionDrag = { side: hit.side, start: hit.ru, end: hit.ru };
+      updateSectionHint();
+      document.addEventListener('pointermove', onSectionMove);
+      document.addEventListener('pointerup', onSectionUp);
+    });
+  }
+
+  function updateSectionHint() {
+    document.querySelectorAll('.ru-row.section-preview').forEach(r => r.classList.remove('section-preview'));
+    if (!sectionDrag) return;
+    const lo = Math.min(sectionDrag.start, sectionDrag.end);
+    const hi = Math.max(sectionDrag.start, sectionDrag.end);
+    const rackId = sectionDrag.side === 'front' ? 'front-rack' : 'rear-rack';
+    const rack = document.getElementById(rackId);
+    for (let ru = lo; ru <= hi; ru++) {
+      const row = rack.querySelector(`.ru-row[data-ru="${ru}"]`);
+      if (row) row.classList.add('section-preview');
+    }
+  }
+
+  function onSectionMove(e) {
+    if (!sectionDrag) return;
+    const hit = gutterRuFromEvent(e);
+    if (hit && hit.side === sectionDrag.side) {
+      sectionDrag.end = hit.ru;
+      updateSectionHint();
+    }
+  }
+
+  function onSectionUp() {
+    document.removeEventListener('pointermove', onSectionMove);
+    document.removeEventListener('pointerup', onSectionUp);
+    if (!sectionDrag) return;
+    const lo = Math.min(sectionDrag.start, sectionDrag.end);
+    const hi = Math.max(sectionDrag.start, sectionDrag.end);
+    const defaultSide = sectionDrag.side;
+    sectionDrag = null;
+    document.querySelectorAll('.ru-row.section-preview').forEach(r => r.classList.remove('section-preview'));
+    setSectionMode(false);
+    // Open creation popover anchored to the front-rack element (good enough).
+    const anchor = document.getElementById('front-rack');
+    Popover.open(anchor, 'New section', [
+      { key: 'name', label: 'Name', type: 'text', value: '' },
+      { key: 'side', label: 'Side', type: 'radio', options: ['front','rear','both'], value: defaultSide },
+      { key: 'color', label: 'Color', type: 'color', value: Palette.nextUnused(State.get().devices, State.get().sections) }
+    ], values => {
+      if (!values.name || !values.name.trim()) { alert('Section name is required.'); return; }
+      State.setState(s => {
+        s.sections.push({
+          id: State.nextSectionId(s),
+          name: values.name.trim(),
+          side: values.side,
+          ru_start: lo,
+          ru_end: hi,
+          color: values.color
+        });
+        return s;
+      });
+    });
+  }
+
+  function openSectionEditor(barEl) {
+    const id = barEl.getAttribute('data-section-id');
+    const sec = State.get().sections.find(x => x.id === id);
+    if (!sec) return;
+    Popover.open(barEl, `Edit section (${sec.id})`, [
+      { key: 'name', label: 'Name', type: 'text', value: sec.name },
+      { key: 'side', label: 'Side', type: 'radio', options: ['front','rear','both'], value: sec.side },
+      { key: 'ru_start', label: 'RU start', type: 'number', min: 1, max: State.get().rack.height_ru, value: sec.ru_start },
+      { key: 'ru_end',   label: 'RU end',   type: 'number', min: 1, max: State.get().rack.height_ru, value: sec.ru_end },
+      { key: 'color', label: 'Color', type: 'color', value: sec.color }
+    ],
+    values => {
+      if (!values.name || !values.name.trim()) { alert('Section name is required.'); return; }
+      const lo = Math.min(values.ru_start, values.ru_end);
+      const hi = Math.max(values.ru_start, values.ru_end);
+      const H = State.get().rack.height_ru;
+      if (lo < 1 || hi > H) { alert(`Range must be within 1..${H}.`); return; }
+      State.setState(s => {
+        const ss = s.sections.find(x => x.id === id);
+        if (!ss) return s;
+        ss.name = values.name.trim();
+        ss.side = values.side;
+        ss.ru_start = lo;
+        ss.ru_end = hi;
+        ss.color = values.color;
+        return s;
+      });
+    },
+    () => {
+      if (!confirm(`Delete section "${sec.name}"?`)) return;
+      State.setState(s => { s.sections = s.sections.filter(x => x.id !== id); return s; });
+    });
+  }
+
+  function attachSectionClicks() {
+    document.addEventListener('click', e => {
+      if (sectionMode) return;
+      const bar = e.target.closest('.section-bar');
+      if (!bar) return;
+      openSectionEditor(bar);
+    });
+  }
+
+  function init() {
+    attachPresetDrag();
+    attachDeviceDrag();
+    attachSectionCreation();
+    attachSectionClicks();
+    document.addEventListener('click', e => {
+      if (e.target && e.target.id === 'btn-custom') addCustomDevice();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      const a = document.activeElement;
+      if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return;
+      const tile = document.querySelector('.device-tile.selected');
+      if (!tile) return;
+      const id = tile.getAttribute('data-device-id');
+      const dev = State.get().devices.find(x => x.id === id);
+      if (!dev) return;
+      if (!confirm(`Delete device "${dev.label}"?`)) return;
+      State.setState(s => { s.devices = s.devices.filter(x => x.id !== id); return s; });
+    });
+    document.addEventListener('click', e => {
+      if (e.target && e.target.id === 'btn-export') {
+        const yaml = YamlCodec.toYaml(State.get());
+        const blob = new Blob([yaml], { type: 'text/yaml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const safeName = State.get().rack.name.replace(/[^A-Za-z0-9_-]+/g, '_') || 'rack';
+        a.href = url;
+        a.download = safeName + '.yaml';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+      if (e.target && e.target.id === 'btn-import') {
+        const inp = document.createElement('input');
+        inp.type = 'file';
+        inp.accept = '.yaml,.yml,text/yaml,text/plain';
+        inp.addEventListener('change', () => {
+          const file = inp.files && inp.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              const parsed = YamlCodec.fromYaml(String(reader.result));
+              const errors = Validation.validateState(parsed);
+              if (errors.length) { alert('Import rejected:\n\n' + errors.join('\n')); return; }
+              State.setState(() => parsed);
+            } catch (e) {
+              alert('Import failed: ' + e.message);
+            }
+          };
+          reader.readAsText(file);
+        });
+        inp.click();
+      }
+    });
+  }
+
+  return { init };
+})();
+
+// =================================================================
+// Popover — generic editor used for devices and sections.
+// =================================================================
+const Popover = (() => {
+  let current = null; // { el, escHandler }
+
+  function close() {
+    if (!current) return;
+    current.el.remove();
+    document.removeEventListener('keydown', current.escHandler);
+    document.removeEventListener('pointerdown', current.outsideHandler, true);
+    current = null;
+  }
+
+  // anchorEl: DOM element to position next to. fields: array of {key, label, type, value, options?}. onSave: (values) => void. onDelete: () => void (optional).
+  function open(anchorEl, title, fields, onSave, onDelete) {
+    close();
+    const rect = anchorEl.getBoundingClientRect();
+    const wrap = document.createElement('div');
+    wrap.className = 'popover';
+    wrap.style.left = Math.min(rect.right + 8, window.innerWidth - 280) + 'px';
+    // Initial top — clamped against viewport after the popover is appended
+    // and its real height is known (the popover height varies with the field
+    // mix; the color-swatch grid in particular makes it taller than any fixed estimate).
+    wrap.style.top = Math.max(8, rect.top) + 'px';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'popover-title';
+    titleEl.textContent = title;
+    wrap.appendChild(titleEl);
+
+    const inputs = {};
+    for (const f of fields) {
+      const row = document.createElement('div');
+      row.className = 'popover-field';
+      const lbl = document.createElement('label');
+      lbl.className = 'lbl';
+      lbl.textContent = f.label;
+      row.appendChild(lbl);
+      let input;
+      if (f.type === 'text') {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = f.value || '';
+      } else if (f.type === 'number') {
+        input = document.createElement('input');
+        input.type = 'number';
+        input.min = String(f.min || 1);
+        input.max = String(f.max || 99);
+        input.value = String(f.value);
+      } else if (f.type === 'radio') {
+        input = document.createElement('div');
+        input.className = 'radio-row';
+        for (const opt of f.options) {
+          const id = `r-${f.key}-${opt}`;
+          const r = document.createElement('input');
+          r.type = 'radio'; r.name = f.key; r.id = id; r.value = opt;
+          if (opt === f.value) r.checked = true;
+          const ll = document.createElement('label');
+          ll.htmlFor = id; ll.textContent = opt;
+          input.appendChild(r); input.appendChild(ll);
+        }
+      } else if (f.type === 'color') {
+        input = document.createElement('div');
+        input.className = 'color-grid';
+        for (const c of Palette.COLORS) {
+          const sw = document.createElement('button');
+          sw.type = 'button';
+          sw.className = 'swatch' + (c === f.value ? ' selected' : '');
+          sw.style.background = c;
+          sw.setAttribute('data-color', c);
+          sw.addEventListener('click', () => {
+            input.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+            sw.classList.add('selected');
+          });
+          input.appendChild(sw);
+        }
+      }
+      row.appendChild(input);
+      inputs[f.key] = input;
+      wrap.appendChild(row);
+    }
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'popover-buttons';
+    const save = document.createElement('button');
+    save.className = 'btn primary';
+    save.textContent = 'Save';
+    save.addEventListener('click', () => {
+      const values = {};
+      for (const f of fields) {
+        const el = inputs[f.key];
+        if (f.type === 'text') values[f.key] = el.value;
+        else if (f.type === 'number') values[f.key] = parseInt(el.value, 10);
+        else if (f.type === 'radio') values[f.key] = el.querySelector('input:checked')?.value;
+        else if (f.type === 'color') values[f.key] = el.querySelector('.swatch.selected')?.getAttribute('data-color') || f.value;
+      }
+      onSave(values);
+      close();
+    });
+    btnRow.appendChild(save);
+    if (onDelete) {
+      const del = document.createElement('button');
+      del.className = 'btn danger';
+      del.textContent = 'Delete';
+      del.addEventListener('click', () => { onDelete(); close(); });
+      btnRow.appendChild(del);
+    }
+    const cancel = document.createElement('button');
+    cancel.className = 'btn';
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', close);
+    btnRow.appendChild(cancel);
+    wrap.appendChild(btnRow);
+
+    document.body.appendChild(wrap);
+    // Now that the popover is laid out, reposition vertically so it stays inside the viewport.
+    const popH = wrap.getBoundingClientRect().height;
+    const maxTop = Math.max(8, window.innerHeight - popH - 8);
+    const curTop = parseFloat(wrap.style.top) || 0;
+    if (curTop > maxTop) wrap.style.top = maxTop + 'px';
+    // Focus the first text input if any.
+    const firstText = wrap.querySelector('input[type="text"]');
+    if (firstText) firstText.focus();
+
+    const escHandler = e => { if (e.key === 'Escape') close(); };
+    const outsideHandler = e => { if (!wrap.contains(e.target)) close(); };
+    document.addEventListener('keydown', escHandler);
+    // Defer outside-click handler until next tick so the click that opened it doesn't close it.
+    setTimeout(() => document.addEventListener('pointerdown', outsideHandler, true), 0);
+
+    current = { el: wrap, escHandler, outsideHandler };
+  }
+
+  return { open, close, isOpen: () => !!current };
+})();
+
+// =================================================================
+// Settings — UI preferences persisted separately from rack state so they
+// don't leak into the YAML export.
+// =================================================================
+const Settings = (() => {
+  const KEY = 'rack-designer:ui:v1';
+  const defaults = { scrollLock: true };
+  let values = { ...defaults };
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) values = { ...defaults, ...JSON.parse(raw) };
+  } catch (e) { /* keep defaults */ }
+  function get(k) { return values[k]; }
+  function set(k, v) {
+    values[k] = v;
+    try { localStorage.setItem(KEY, JSON.stringify(values)); } catch (e) {}
+  }
+  return { get, set };
+})();
+
+// Sync vertical scroll between front and back rack columns when Settings.scrollLock is on.
+function bindScrollSync() {
+  const front = document.getElementById('front-col');
+  const back = document.getElementById('back-col');
+  if (!front || !back) return;
+  let syncing = false;
+  function mirror(src, dst) {
+    if (!Settings.get('scrollLock') || syncing) return;
+    syncing = true;
+    dst.scrollTop = src.scrollTop;
+    requestAnimationFrame(() => { syncing = false; });
+  }
+  front.addEventListener('scroll', () => mirror(front, back));
+  back.addEventListener('scroll', () => mirror(back, front));
+}
+
+// =================================================================
+// Boot
+// =================================================================
+State.load();
+State.onChange(() => Renderer.renderAll());
+Renderer.renderAll();
+DragController.init();
+bindScrollSync();
+
+if (new URLSearchParams(location.search).get('test') === '1') {
+  Tests.run();
+}
+</script>
+</body>
+</html>
