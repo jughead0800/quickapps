@@ -39,3 +39,8 @@ apps:
     title: Rack Designer
     emoji: "📱"
     summary: Design server rack layouts with drag-and-drop equipment placement.
+
+  - file: csv-tracker.html
+    title: CSV Tracker
+    emoji: "📄"
+    summary: View CSV files and tick off lines. Supports basic search and filtering.

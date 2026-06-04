@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSV Tracker</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1c232c; --line:#2a3340;
+    --ink:#e6edf3; --mut:#8b98a8; --accent:#3fb950; --accent2:#58a6ff;
+    --crit:#f85149; --high:#db8b2a; --med:#58a6ff; --low:#6e7681; --rev:#a371f7;
+    --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:13px;display:flex;flex-direction:column}
+  header{position:relative;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  h1{font-size:14px;letter-spacing:.06em;text-transform:uppercase;margin:0 8px 0 0;color:var(--mut);font-weight:600}
+  h1 b{color:var(--ink)}
+  button{font-family:var(--mono);font-size:12px;background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+    padding:7px 12px;border-radius:6px;cursor:pointer;transition:border-color .15s,filter .15s}
+  button:hover{border-color:var(--accent2)}
+  button.primary{background:var(--accent2);color:#0d1117;border-color:var(--accent2);font-weight:600}
+  button.primary:hover{filter:brightness(1.08)}
+  button.ghost{color:var(--mut)}
+  #save{margin-left:6px;color:var(--mut);font-size:11px}
+  #save.ok{color:var(--accent)} #save.busy{color:var(--high)} #save.err{color:var(--crit)}
+  .controls{padding:10px 18px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  input[type=search],select{font-family:var(--mono);font-size:12px;background:var(--bg);color:var(--ink);
+    border:1px solid var(--line);border-radius:6px;padding:6px 9px;outline:none}
+  .controls input[type=search]{min-width:220px} input[type=search]:focus,select:focus{border-color:var(--accent2)}
+  label.chk{display:flex;gap:6px;align-items:center;color:var(--mut);cursor:pointer;user-select:none}
+  .stats{margin-left:auto;display:flex;gap:14px;color:var(--mut);font-size:11px;flex-wrap:wrap}
+  .stats b{color:var(--ink)}
+  .panel{padding:10px 18px;border-bottom:1px solid var(--line);background:var(--panel);display:flex;flex-wrap:wrap;
+    gap:6px 18px;align-items:center;max-height:200px;overflow:auto}
+  .panel label{color:var(--ink);font-size:12px}
+  .panel .ph{color:var(--mut);font-size:10px;letter-spacing:.05em;text-transform:uppercase;margin-right:6px}
+  .wrap{flex:1;overflow:auto}
+  table{border-collapse:collapse;width:100%}
+  thead th{background:var(--panel2);text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+  thead tr.head th{position:sticky;top:0;z-index:3;color:var(--mut);font-weight:600;font-size:11px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
+  thead tr.head th:hover{color:var(--ink)}
+  thead tr.filters th{position:sticky;top:31px;z-index:2;background:var(--panel);padding:5px 8px}
+  .filters input,.filters select{width:100%;min-width:0;font-family:var(--mono);font-size:11px;background:var(--bg);
+    color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:4px 6px;outline:none}
+  .filters input:focus,.filters select:focus{border-color:var(--accent2)}
+  tbody td{padding:7px 12px;border-bottom:1px solid #1a212a;vertical-align:top;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  tbody tr:hover{background:#11161d}
+  tr.done{opacity:.45}
+  td.nomatch{text-align:center;color:var(--mut);padding:40px}
+  .tier{font-weight:700;font-size:10px;letter-spacing:.05em;padding:2px 7px;border-radius:4px;border:1px solid;white-space:nowrap}
+  .CRITICAL{color:var(--crit);border-color:var(--crit)} .HIGH{color:var(--high);border-color:var(--high)}
+  .MEDIUM{color:var(--med);border-color:var(--med)} .LOW{color:var(--low);border-color:var(--low)}
+  .REVIEW{color:var(--rev);border-color:var(--rev)}
+  a.link{color:var(--accent2);text-decoration:none} a.link:hover{text-decoration:underline}
+  td.status{text-align:center} input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+  .empty{padding:60px;text-align:center;color:var(--mut);line-height:1.8}
+  .empty code{background:var(--panel2);padding:2px 6px;border-radius:4px;color:var(--accent2)}
+</style>
+</head>
+<body>
+<header>
+  <h1>CSV&nbsp;<b>Tracker</b></h1>
+  <button id="open" class="primary">Open CSV…</button>
+  <button id="saveBtn" style="display:none">Save ↓</button>
+  <button id="cols" class="ghost" style="display:none">Columns ▾</button>
+  <button id="tpl" class="ghost">Template ↓</button>
+  <input type="file" id="fileInput" accept=".csv,text/csv" hidden>
+  <span id="save"></span>
+</header>
+
+<div class="controls" id="controls" style="display:none">
+  <input type="search" id="q" placeholder="search all columns…">
+  <label class="chk"><input type="checkbox" id="hideDone"> hide done</label>
+  <button id="clearF" class="ghost">clear filters</button>
+  <span class="stats" id="stats"></span>
+</div>
+
+<div id="colPanel" class="panel" hidden></div>
+
+<div class="wrap" id="wrap">
+  <div class="empty" id="empty">
+    No file loaded.<br><br>
+    <b>Open CSV…</b> loads any CSV (comma, semicolon, or tab delimited — auto-detected). A separate <code>_tracked</code> column is added for your ticks; your own columns are never modified.<br>
+    Each column gets its own filter (dropdown or contains-text) in the header row. <b>Columns ▾</b> toggles which columns show.<br>
+    <code>http(s)</code> cells become clickable. <b>Save ↓</b> writes back in the same delimiter — re-open it later to resume.<br>
+    No file is written to disk automatically; works in any browser. New to it? <b>Template ↓</b>.
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ---- CSV parse / serialize (delimiter-aware; handles quotes, embedded newlines, CRLF) ----
+function sniffDelim(text){
+  const nl=text.search(/\r?\n/); let line=nl<0?text:text.slice(0,nl);
+  if(line.charCodeAt(0)===0xFEFF) line=line.slice(1);
+  const count={',':0,';':0,'\t':0}; let q=false;
+  for(const ch of line){ if(ch==='"'){q=!q;continue;} if(!q && ch in count) count[ch]++; }
+  let best=','; for(const d of [';','\t']) if(count[d]>count[best]) best=d;
+  return best;
+}
+function parseCSV(text,delim){
+  delim=delim||',';
+  const rows=[]; let row=[], field='', i=0, q=false;
+  if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+  while(i<text.length){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){field+='"';i+=2;continue;} q=false;i++;continue; } field+=c;i++;continue; }
+    if(c==='"'){q=true;i++;continue;}
+    if(c===delim){row.push(field);field='';i++;continue;}
+    if(c==='\r'){i++;continue;}
+    if(c==='\n'){row.push(field);rows.push(row);row=[];field='';i++;continue;}
+    field+=c;i++;
+  }
+  if(field!==''||row.length){row.push(field);rows.push(row);}
+  return rows;
+}
+function csvCell(v,delim){ v=v==null?'':String(v);
+  return (v.includes('"')||v.includes('\r')||v.includes('\n')||v.includes(delim)) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+function toCSV(headers,rows,delim){
+  delim=delim||',';
+  const out=[headers.map(h=>csvCell(h,delim)).join(delim)];
+  for(const r of rows) out.push(headers.map((_,i)=>csvCell(r[i],delim)).join(delim));
+  return out.join('\r\n')+'\r\n';
+}
+
+// ---- state ----
+let headers=[], data=[], trackIdx=-1, sortIdx=-1, sortDir=1;
+let colFilters=[], visible=[], meta=[];     // colFilters[i]: string; visible[i]: bool; meta[i]:{isSelect,vals}
+let filename='tracker.csv', dirty=false, delim=',';
+const SEV={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3,REVIEW:4};
+const DISTINCT_MAX=60;                        // <= this many distinct values -> dropdown filter, else contains-text
+const $=id=>document.getElementById(id);
+const isURL=v=>/^https?:\/\//i.test(String(v).trim());
+const setSave=(t,c)=>{const s=$('save');s.textContent=t;s.className=c||'';};
+const shown=i=>visible[i]||i===trackIdx;     // status column is always shown
+
+function buildMeta(){
+  meta=headers.map((h,i)=>{
+    if(i===trackIdx) return {status:true};
+    const vals=[...new Set(data.map(r=>r[i]).filter(v=>v!==''))].sort();
+    return {isSelect: vals.length>1 && vals.length<=DISTINCT_MAX, vals};
+  });
+}
+
+function loadRows(text){
+  delim=sniffDelim(text);
+  const rows=parseCSV(text,delim).filter(r=>r.length>1||(r.length===1&&r[0].trim()!==''));
+  if(!rows.length){ setSave('empty file','err'); return; }
+  headers=rows.shift().slice();
+  trackIdx=headers.findIndex(h=>h.trim().toLowerCase()==='_tracked');  // dedicated action column; never touches source data
+  if(trackIdx<0){ headers.push('_tracked'); trackIdx=headers.length-1; }
+  data=rows.map(r=>{ const a=r.slice(0,headers.length); while(a.length<headers.length) a.push(''); return a; });
+  colFilters=headers.map(()=>''); visible=headers.map(()=>true); sortIdx=-1;
+  buildMeta(); buildColPanel();
+  $('wrap').innerHTML='<table><thead id="thead"></thead><tbody id="tbody"></tbody></table>';
+  renderHead(); renderBody();
+  $('controls').style.display='flex'; $('saveBtn').style.display='inline-block'; $('cols').style.display='inline-block';
+}
+
+// ---- load / save ----
+$('open').onclick=()=>$('fileInput').click();
+$('fileInput').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  filename=f.name;
+  const r=new FileReader();
+  r.onload=()=>{ loadRows(r.result); dirty=false; setSave('loaded · '+data.length+' rows · delim '+(delim==='\t'?'tab':delim),'ok'); };
+  r.onerror=()=>setSave('read failed','err');
+  r.readAsText(f); e.target.value='';
+};
+function download(name,text){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'}));
+  a.download=name; a.click(); URL.revokeObjectURL(a.href);
+}
+$('saveBtn').onclick=()=>{ download(filename,toCSV(headers,data,delim)); dirty=false; setSave('saved ✓ '+filename,'ok'); };
+$('tpl').onclick=()=>download('tracker_template.csv',
+  toCSV(['Name','URL','Category','Notes'],
+        [['Example item','https://example.com','General','Replace with your own rows']], ','));
+window.addEventListener('beforeunload',e=>{ if(dirty){e.preventDefault();e.returnValue='';} });
+
+// ---- (b) column show/hide panel ----
+function buildColPanel(){
+  const p=$('colPanel');
+  p.innerHTML='<span class="ph">show columns</span>'+headers.map((h,i)=>
+    i===trackIdx?'':`<label class="chk"><input type="checkbox" data-c="${i}" ${visible[i]?'checked':''}> ${esc(h||('col'+i))}</label>`
+  ).join('');
+  p.querySelectorAll('input[data-c]').forEach(cb=>cb.onchange=()=>{
+    const i=+cb.dataset.c; visible[i]=cb.checked;
+    if(!cb.checked) colFilters[i]='';        // hiding a column drops its filter
+    renderHead(); renderBody();
+  });
+}
+$('cols').onclick=()=>{ const p=$('colPanel'); p.hidden=!p.hidden; $('cols').textContent='Columns '+(p.hidden?'▾':'▴'); };
+$('clearF').onclick=()=>{ colFilters=headers.map(()=>''); $('q').value=''; $('hideDone').checked=false; renderHead(); renderBody(); };
+
+// ---- global controls ----
+$('q').oninput=$('hideDone').onchange=renderBody;
+
+// ---- filtering / sorting ----
+function sevSortable(i){ return data.length>0 && data.every(r=>r[i]==='' || (r[i].toUpperCase() in SEV)); }
+function visibleRows(){
+  const q=$('q').value.trim().toLowerCase(), hide=$('hideDone').checked, sf=colFilters[trackIdx];
+  let rows=data.filter(r=>{
+    if(hide && r[trackIdx]) return false;
+    if(sf==='done' && !r[trackIdx]) return false;
+    if(sf==='todo' && r[trackIdx]) return false;
+    for(let i=0;i<headers.length;i++){
+      if(i===trackIdx || !visible[i]) continue;
+      const f=colFilters[i]; if(!f) continue;
+      if(meta[i].isSelect){ if(r[i]!==f) return false; }
+      else if(!String(r[i]).toLowerCase().includes(f.toLowerCase())) return false;
+    }
+    if(q && !r.join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  if(sortIdx>=0){
+    const sev=sevSortable(sortIdx);
+    rows=rows.slice().sort((a,b)=>{
+      let av=a[sortIdx]??'', bv=b[sortIdx]??'';
+      if(sev){ av=av?SEV[av.toUpperCase()]:99; bv=bv?SEV[bv.toUpperCase()]:99; }
+      else { av=av.toLowerCase(); bv=bv.toLowerCase(); }
+      return (av<bv?-1:av>bv?1:0)*sortDir;
+    });
+  }
+  return rows;
+}
+
+// ---- render ----
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function cell(val){
+  if(isURL(val)) return `<a class="link" href="${esc(val)}" target="_blank" rel="noopener">${esc(val)}</a>`;
+  if(val && val.toUpperCase() in SEV) return `<span class="tier ${val.toUpperCase()}">${esc(val)}</span>`;
+  return esc(val);
+}
+function refreshStats(n){
+  const done=data.filter(r=>r[trackIdx]).length;
+  $('stats').innerHTML=`showing <b>${n}</b>/${data.length} · done <b>${done}</b> · left <b>${data.length-done}</b>`;
+}
+function renderHead(){
+  let h1='<tr class="head">';
+  headers.forEach((h,i)=>{ if(!shown(i)) return; const arrow=sortIdx===i?(sortDir>0?' ▲':' ▼'):''; h1+=`<th data-i="${i}">${esc(h)}${arrow}</th>`; });
+  h1+='</tr><tr class="filters">';
+  headers.forEach((h,i)=>{
+    if(!shown(i)) return;
+    if(i===trackIdx){
+      h1+=`<th><select data-f="${i}"><option value="">all</option><option value="done">done</option><option value="todo">todo</option></select></th>`;
+    } else if(meta[i].isSelect){
+      let o='<option value="">all</option>'; meta[i].vals.forEach(v=>o+=`<option ${colFilters[i]===v?'selected':''}>${esc(v)}</option>`);
+      h1+=`<th><select data-f="${i}">${o}</select></th>`;
+    } else {
+      h1+=`<th><input type="search" data-f="${i}" placeholder="contains…" value="${esc(colFilters[i])}"></th>`;
+    }
+  });
+  h1+='</tr>';
+  const thead=$('thead'); thead.innerHTML=h1;
+  thead.querySelectorAll('tr.head th[data-i]').forEach(th=>th.onclick=()=>{
+    const i=+th.dataset.i; if(sortIdx===i) sortDir*=-1; else {sortIdx=i;sortDir=1;} renderHead(); renderBody();
+  });
+  thead.querySelectorAll('[data-f]').forEach(el=>{
+    const i=+el.dataset.f; el.value=colFilters[i];
+    if(el.tagName==='SELECT') el.onchange=()=>{ colFilters[i]=el.value; renderBody(); };
+    else el.oninput=()=>{ colFilters[i]=el.value; renderBody(); };
+  });
+}
+function renderBody(){
+  const rows=visibleRows(); refreshStats(rows.length);
+  const tb=$('tbody'), span=headers.filter((_,i)=>shown(i)).length;
+  if(!rows.length){ tb.innerHTML=`<tr><td class="nomatch" colspan="${span}">No rows match the filters.</td></tr>`; return; }
+  let html='';
+  for(const r of rows){
+    const idx=data.indexOf(r);
+    html+=`<tr class="${r[trackIdx]?'done':''}">`;
+    headers.forEach((_,i)=>{
+      if(!shown(i)) return;
+      if(i===trackIdx) html+=`<td class="status"><input type="checkbox" data-i="${idx}" ${r[trackIdx]?'checked':''}></td>`;
+      else html+=`<td>${cell(r[i])}</td>`;
+    });
+    html+='</tr>';
+  }
+  tb.innerHTML=html;
+  tb.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=onToggle);
+}
+function onToggle(e){
+  data[+e.target.dataset.i][trackIdx] = e.target.checked ? 'done' : '';
+  dirty=true; setSave('unsaved — hit Save ↓','busy');
+  renderBody();   // re-filter so hide-done / status filter take effect immediately
+}
+</script>
+</body>
+</html>
