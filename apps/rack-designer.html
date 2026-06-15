@@ -23,8 +23,18 @@
   body { display: grid; grid-template-rows: auto 1fr; }
   header { padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; gap: 12px; }
   header h1 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 0.2px; }
-  header .status { color: var(--text-muted); font-size: 12px; }
-  main { display: grid; grid-template-columns: 240px 1fr 1fr; min-height: 0; }
+  header .status { color: var(--text-muted); font-size: 12px; margin-left: auto; }
+  .view-tabs { display: flex; gap: 4px; }
+  .view-tab {
+    background: transparent; color: var(--text-muted);
+    border: 1px solid transparent; border-radius: 4px;
+    padding: 4px 12px; font: inherit; cursor: pointer;
+  }
+  .view-tab:hover { color: var(--text); }
+  .view-tab.active { background: var(--surface-elev); color: var(--text); border-color: var(--border); }
+  #view-host { min-height: 0; height: 100%; }
+  main { display: grid; grid-template-columns: 240px 1fr 1fr; min-height: 0; height: 100%; }
+  #main-net { height: 100%; min-height: 0; flex-direction: column; }
   .col { border-right: 1px solid var(--border); padding: 12px; overflow: auto; }
   .col:last-child { border-right: 0; }
   .col h2 { margin: 0 0 8px 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
@@ -159,35 +169,80 @@
   .ru-row.section-preview { background: rgba(99, 102, 241, 0.18); }
   .check-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); cursor: pointer; }
   .check-row input[type="checkbox"] { margin: 0; cursor: pointer; }
+
+  /* ---- Networking view ---- */
+  select { background: var(--surface-elev); color: var(--text); border: 1px solid var(--border); border-radius: 3px; padding: 5px 8px; font: inherit; }
+  select:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+  textarea { background: var(--surface-elev); color: var(--text); border: 1px solid var(--border); border-radius: 3px; padding: 5px 8px; font: inherit; resize: vertical; }
+  #net-root { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+  .net-tabstrip { display: flex; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--surface); overflow-x: auto; flex-shrink: 0; }
+  .net-tab { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; background: var(--surface-elev); color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; font: inherit; cursor: pointer; }
+  .net-tab:hover { color: var(--text); }
+  .net-tab.active { color: var(--text); border-color: var(--accent); }
+  .net-tab .net-tab-close { color: var(--text-muted); border: 0; background: transparent; cursor: pointer; padding: 0 2px; font-size: 14px; line-height: 1; }
+  .net-tab .net-tab-close:hover { color: var(--danger); }
+  .net-pane { flex: 1; min-height: 0; overflow: auto; padding: 16px; }
+  .net-section { max-width: 920px; margin: 0 auto 20px auto; }
+  .net-section h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 0 0 10px 0; }
+  .net-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 12px; }
+  .net-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .net-row + .net-row { margin-top: 8px; }
+  .net-grow { flex: 1; min-width: 80px; }
+  .net-muted { color: var(--text-muted); font-size: 12px; }
+  table.net-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.net-table th, table.net-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  table.net-table th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
+  table.net-table tr.broken td { background: rgba(239, 68, 68, 0.12); }
+  .net-badge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 10px; border: 1px solid var(--border); color: var(--text-muted); }
+  .net-badge.ok { color: var(--ok); border-color: rgba(34,197,94,0.4); }
+  .net-badge.broken { color: var(--danger); border-color: rgba(239,68,68,0.4); }
+  .net-pill { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 3px; color: #fff; }
+  .net-iconbtn { background: var(--surface-elev); color: var(--text); border: 1px solid var(--border); border-radius: 3px; padding: 2px 7px; font: inherit; cursor: pointer; }
+  .net-iconbtn:hover { border-color: var(--accent); }
+  .net-empty { color: var(--text-muted); font-size: 13px; padding: 16px 0; text-align: center; }
+  .net-portgroup { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .net-portgroup input[type="text"] { width: 160px; }
+  .net-portgroup input[type="number"] { width: 80px; }
+  .net-connect-form { display: none; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 6px; padding: 8px; border: 1px dashed var(--border); border-radius: 4px; }
+  .net-connect-form.open { display: flex; }
 </style>
 </head>
 <body>
 <header>
   <h1>Rack Designer</h1>
+  <div class="view-tabs" id="view-tabs">
+    <button type="button" class="view-tab active" data-view="rack">Rack</button>
+    <button type="button" class="view-tab" data-view="networking">Networking</button>
+  </div>
   <span class="status" id="status"></span>
 </header>
-<main>
-  <aside class="col" id="palette-col">
-    <h2>Toolbar</h2>
-    <div id="toolbar"></div>
-    <h2 style="margin-top:16px;">Presets</h2>
-    <div id="presets"></div>
-  </aside>
-  <section class="col" id="front-col">
-    <h2>Front</h2>
-    <div class="rack-wrap">
-      <div class="gutter" id="front-gutter"></div>
-      <div class="rack" id="front-rack"></div>
-    </div>
+<div id="view-host">
+  <main id="main-rack">
+    <aside class="col" id="palette-col">
+      <h2>Toolbar</h2>
+      <div id="toolbar"></div>
+      <h2 style="margin-top:16px;">Presets</h2>
+      <div id="presets"></div>
+    </aside>
+    <section class="col" id="front-col">
+      <h2>Front</h2>
+      <div class="rack-wrap">
+        <div class="gutter" id="front-gutter"></div>
+        <div class="rack" id="front-rack"></div>
+      </div>
+    </section>
+    <section class="col" id="back-col">
+      <h2>Back</h2>
+      <div class="rack-wrap">
+        <div class="rack" id="rear-rack"></div>
+        <div class="gutter" id="rear-gutter"></div>
+      </div>
+    </section>
+  </main>
+  <section id="main-net" style="display:none;">
+    <div id="net-root"></div>
   </section>
-  <section class="col" id="back-col">
-    <h2>Back</h2>
-    <div class="rack-wrap">
-      <div class="rack" id="rear-rack"></div>
-      <div class="gutter" id="rear-gutter"></div>
-    </div>
-  </section>
-</main>
+</div>
 <script>
 'use strict';
 
@@ -227,6 +282,7 @@ const Tests = (() => {
 // =================================================================
 const State = (() => {
   const STORAGE_KEY = 'rack-designer:state:v1';
+  const DEFAULT_LABEL_TEMPLATE = '{A.device}/{A.port} -> {B.device}/{B.port}';
   const listeners = new Set();
   let state = null;
 
@@ -234,8 +290,22 @@ const State = (() => {
     return {
       rack: { name: 'My Rack', height_ru: 42 },
       devices: [],
-      sections: []
+      sections: [],
+      cables: [],
+      network: { labelTemplate: DEFAULT_LABEL_TEMPLATE }
     };
+  }
+
+  // Bring a parsed/imported state up to the current shape without mutating
+  // the rack-layout fields. Networking fields were added after v1 shipped, so
+  // older saves and rack-only YAML lack them.
+  function normalize(s) {
+    if (!Array.isArray(s.cables)) s.cables = [];
+    if (!s.network || typeof s.network !== 'object') s.network = {};
+    if (typeof s.network.labelTemplate !== 'string' || !s.network.labelTemplate) {
+      s.network.labelTemplate = DEFAULT_LABEL_TEMPLATE;
+    }
+    return s;
   }
 
   function load() {
@@ -244,7 +314,7 @@ const State = (() => {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && parsed.rack && Array.isArray(parsed.devices) && Array.isArray(parsed.sections)) {
-          state = parsed;
+          state = normalize(parsed);
           return;
         }
       }
@@ -280,8 +350,13 @@ const State = (() => {
     const max = nums.length ? Math.max(...nums) : 0;
     return 'sec-' + String(max + 1).padStart(3, '0');
   }
+  function nextCableId(s) {
+    const nums = (s.cables || []).map(c => parseInt((c.id || '').replace(/^cab-/, ''), 10)).filter(n => !isNaN(n));
+    const max = nums.length ? Math.max(...nums) : 0;
+    return 'cab-' + String(max + 1).padStart(3, '0');
+  }
 
-  return { load, get, setState, onChange, reset, defaultState, nextDeviceId, nextSectionId, STORAGE_KEY };
+  return { load, get, setState, onChange, reset, defaultState, normalize, nextDeviceId, nextSectionId, nextCableId, DEFAULT_LABEL_TEMPLATE, STORAGE_KEY };
 })();
 
 // =================================================================
@@ -388,6 +463,13 @@ const YamlCodec = (() => {
 #   service   : (optional) explicit service this device belongs to. If
 #               omitted, service membership can be inferred from sections
 #               (see below).
+#   network_role : (optional) 'patch-panel' | 'switch' | 'device' — drives the
+#               port-count cap in the Networking tab (48 / 50 / 16).
+#   port_groups  : (optional) ordered list of typed port banks. Each item:
+#                    type  : freetext port type, e.g. RJ45, "10GbE SFP+"
+#                    count : number of ports in this bank
+#               Ports are numbered 1..N across all groups in order. A port's
+#               stable id is g{groupIndex}:{positionInGroup} (used by cables).
 #
 # sections[] : named groupings shown as labeled brackets alongside the rack.
 #   id        : stable unique identifier
@@ -403,6 +485,23 @@ const YamlCodec = (() => {
 #   [section.ru_start, section.ru_end] AND the device's side overlaps
 #   the section's side. Devices may also declare an explicit \`service\`
 #   when they sit outside any section's range.
+#
+# cables[] : network cables. Each cable connects endpoint A to endpoint B.
+#   An endpoint is EITHER an in-rack device port (a_device + a_port, where
+#   a_port is a g{group}:{pos} port id) OR a free-text destination
+#   (a_external, e.g. "ISP uplink"). Same for the B side (b_*).
+#   id        : stable unique identifier
+#   cable_type: (optional) freetext, e.g. Cat6, OM4
+#   length    : (optional) freetext, e.g. 2m
+#   label     : (optional) manual label override; otherwise built from the
+#               network.label_template
+#   notes     : (optional) freetext
+#   order     : integer sort key for the logical cable list
+#
+# network :
+#   label_template : token template used to auto-build cable labels. Tokens:
+#       {A.device} {A.id} {A.port} {A.portType} {A.role} (and {B.*}),
+#       {cableType} {length}
 #
 # Invariants:
 #   - position + size_ru - 1 <= rack.height_ru
@@ -443,6 +542,14 @@ const YamlCodec = (() => {
         out += `    side: ${d.side}\n`;
         out += `    color: ${quote(d.color)}\n`;
         if (d.service) out += `    service: ${quote(d.service)}\n`;
+        if (d.networkRole) out += `    network_role: ${d.networkRole}\n`;
+        if (Array.isArray(d.portGroups) && d.portGroups.length) {
+          out += `    port_groups:\n`;
+          for (const g of d.portGroups) {
+            out += `      - type: ${quote(String(g.type))}\n`;
+            out += `        count: ${parseInt(g.count, 10) || 0}\n`;
+          }
+        }
       }
     }
     out += '\n';
@@ -459,11 +566,40 @@ const YamlCodec = (() => {
         out += `    color: ${quote(s.color)}\n`;
       }
     }
+    // cables[] — only emitted when the state carries the networking slice, so
+    // rack-only states (and the legacy round-trip tests) are unaffected.
+    if (Array.isArray(state.cables)) {
+      out += '\n';
+      out += 'cables:\n';
+      if (state.cables.length === 0) {
+        out += '  []\n';
+      } else {
+        const ext = e => e && typeof e.external === 'string';
+        for (const c of state.cables) {
+          out += `  - id: ${quote(c.id)}\n`;
+          if (ext(c.a)) out += `    a_external: ${quote(c.a.external)}\n`;
+          else { out += `    a_device: ${quote(c.a.deviceId)}\n`; out += `    a_port: ${quote(c.a.portKey)}\n`; }
+          if (ext(c.b)) out += `    b_external: ${quote(c.b.external)}\n`;
+          else { out += `    b_device: ${quote(c.b.deviceId)}\n`; out += `    b_port: ${quote(c.b.portKey)}\n`; }
+          if (c.cableType) out += `    cable_type: ${quote(String(c.cableType))}\n`;
+          if (c.length) out += `    length: ${quote(String(c.length))}\n`;
+          if (c.label) out += `    label: ${quote(String(c.label))}\n`;
+          if (c.notes) out += `    notes: ${quote(String(c.notes))}\n`;
+          out += `    order: ${Number.isFinite(c.order) ? c.order : 0}\n`;
+        }
+      }
+    }
+    if (state.network) {
+      out += '\n';
+      out += 'network:\n';
+      out += `  label_template: ${quote(String(state.network.labelTemplate || ''))}\n`;
+    }
     return out;
   }
 
   // Parser for the restricted subset: top-level mapping with keys
-  // 'rack' (nested map), 'devices' (list of maps), 'sections' (list of maps).
+  // 'rack'/'network' (nested maps), 'devices'/'sections'/'cables' (lists of
+  // maps). A list item may itself contain a nested list (used by port_groups).
   // Scalars: integers, double-quoted strings, bare identifiers.
   function unquote(s) {
     s = s.trim();
@@ -473,6 +609,31 @@ const YamlCodec = (() => {
     }
     if (/^-?\d+$/.test(s)) return parseInt(s, 10);
     return s; // bare identifier
+  }
+
+  // Map a raw-parsed device map onto our canonical field set/order.
+  function deviceFromItem(d) {
+    const out = { id: d.id, label: d.label, size_ru: d.size_ru, position: d.position, side: d.side, color: d.color };
+    if (d.service != null && d.service !== '') out.service = d.service;
+    if (d.network_role != null && d.network_role !== '') out.networkRole = String(d.network_role);
+    if (Array.isArray(d.port_groups)) {
+      out.portGroups = d.port_groups.map(g => ({ type: String(g.type), count: parseInt(g.count, 10) || 0 }));
+    }
+    return out;
+  }
+
+  // Map a raw-parsed cable map onto our canonical cable shape.
+  function cableFromItem(it) {
+    const end = (devKey, portKey, extKey) =>
+      it[extKey] != null ? { external: String(it[extKey]) }
+                         : { deviceId: it[devKey], portKey: String(it[portKey]) };
+    const c = { id: it.id, a: end('a_device', 'a_port', 'a_external'), b: end('b_device', 'b_port', 'b_external') };
+    if (it.cable_type != null && it.cable_type !== '') c.cableType = String(it.cable_type);
+    if (it.length != null && it.length !== '') c.length = String(it.length);
+    if (it.label != null && it.label !== '') c.label = String(it.label);
+    if (it.notes != null && it.notes !== '') c.notes = String(it.notes);
+    c.order = Number.isInteger(it.order) ? it.order : 0;
+    return c;
   }
 
   function fromYaml(text) {
@@ -495,58 +656,83 @@ const YamlCodec = (() => {
     }
 
     function indentOf(line) { return line.match(/^ */)[0].length; }
+    function fieldMatch(s) { return s.match(/^([A-Za-z_][\w-]*):\s*(.*)$/); }
 
     const state = { rack: { name: 'My Rack', height_ru: 42 }, devices: [], sections: [] };
+    let i = 0; // shared cursor mutated by the helpers below
 
-    let i = 0;
+    // Parse a list of "- "-prefixed map items at the given indent. Advances i.
+    function parseList(itemIndent) {
+      const list = [];
+      while (i < lines.length && indentOf(lines[i]) >= itemIndent) {
+        const itemLine = lines[i];
+        const ind = indentOf(itemLine);
+        if (ind === itemIndent && itemLine.trim() === '[]') { i++; break; }
+        if (ind !== itemIndent || !itemLine.trim().startsWith('- ')) {
+          throw new Error(`Expected list item, got: "${itemLine}"`);
+        }
+        list.push(parseMapItem(itemIndent));
+      }
+      return list;
+    }
+
+    // Parse one map item beginning with "- " at itemIndent. Fields live at
+    // itemIndent+2; a field with an empty value followed by deeper "- " lines
+    // is parsed as a nested list (used for port_groups). Advances i.
+    function parseMapItem(itemIndent) {
+      const item = {};
+      const fieldIndent = itemIndent + 2;
+      const fm = fieldMatch(lines[i].trim().slice(2));
+      if (!fm) throw new Error(`Unparseable first list field: "${lines[i]}"`);
+      i++;
+      assignField(item, fm[1], fm[2], fieldIndent);
+      while (i < lines.length && indentOf(lines[i]) >= fieldIndent && !lines[i].trim().startsWith('-')) {
+        const subm = fieldMatch(lines[i].trim());
+        if (!subm) throw new Error(`Unparseable list field line: "${lines[i]}"`);
+        i++;
+        assignField(item, subm[1], subm[2], fieldIndent);
+      }
+      return item;
+    }
+
+    function assignField(item, key, valStr, fieldIndent) {
+      if (valStr === '' && i < lines.length && indentOf(lines[i]) > fieldIndent && lines[i].trim().startsWith('- ')) {
+        item[key] = parseList(indentOf(lines[i]));
+      } else {
+        item[key] = unquote(valStr);
+      }
+    }
+
     while (i < lines.length) {
       const line = lines[i];
       const ind = indentOf(line);
       if (ind !== 0) throw new Error(`Unexpected indent at top level: "${line}"`);
-      const m = line.match(/^([A-Za-z_][\w-]*):\s*(.*)$/);
+      const m = fieldMatch(line);
       if (!m) throw new Error(`Unparseable top-level line: "${line}"`);
       const key = m[1];
       const rest = m[2].trim();
       i++;
-      if (key === 'rack') {
+      if (key === 'rack' || key === 'network') {
         // Nested map at indent 2.
-        const rack = {};
+        const map = {};
         while (i < lines.length && indentOf(lines[i]) >= 2) {
-          const subm = lines[i].trim().match(/^([A-Za-z_][\w-]*):\s*(.*)$/);
-          if (!subm) throw new Error(`Unparseable rack line: "${lines[i]}"`);
-          rack[subm[1]] = unquote(subm[2]);
+          const subm = fieldMatch(lines[i].trim());
+          if (!subm) throw new Error(`Unparseable ${key} line: "${lines[i]}"`);
+          map[subm[1]] = unquote(subm[2]);
           i++;
         }
-        if (typeof rack.name !== 'string') throw new Error('rack.name missing or invalid');
-        if (typeof rack.height_ru !== 'number') throw new Error('rack.height_ru missing or invalid');
-        state.rack = { name: rack.name, height_ru: rack.height_ru };
-      } else if (key === 'devices' || key === 'sections') {
-        const list = [];
-        // Inline empty list?
-        if (rest === '[]') { state[key] = []; continue; }
-        // List items at indent 2, fields at indent 4.
-        while (i < lines.length && indentOf(lines[i]) >= 2) {
-          const itemLine = lines[i];
-          if (indentOf(itemLine) === 2 && itemLine.trim() === '[]') { i++; break; }
-          if (indentOf(itemLine) !== 2 || !itemLine.trim().startsWith('- ')) {
-            throw new Error(`Expected list item, got: "${itemLine}"`);
-          }
-          // First field is on the same line after "- ".
-          const item = {};
-          const firstField = itemLine.trim().slice(2);
-          const fm = firstField.match(/^([A-Za-z_][\w-]*):\s*(.*)$/);
-          if (!fm) throw new Error(`Unparseable first list field: "${itemLine}"`);
-          item[fm[1]] = unquote(fm[2]);
-          i++;
-          while (i < lines.length && indentOf(lines[i]) >= 4 && !lines[i].trim().startsWith('-')) {
-            const subm = lines[i].trim().match(/^([A-Za-z_][\w-]*):\s*(.*)$/);
-            if (!subm) throw new Error(`Unparseable list field line: "${lines[i]}"`);
-            item[subm[1]] = unquote(subm[2]);
-            i++;
-          }
-          list.push(item);
+        if (key === 'rack') {
+          if (typeof map.name !== 'string') throw new Error('rack.name missing or invalid');
+          if (typeof map.height_ru !== 'number') throw new Error('rack.height_ru missing or invalid');
+          state.rack = { name: map.name, height_ru: map.height_ru };
+        } else {
+          state.network = { labelTemplate: map.label_template != null ? String(map.label_template) : '' };
         }
-        state[key] = list;
+      } else if (key === 'devices' || key === 'sections' || key === 'cables') {
+        const list = rest === '[]' ? [] : parseList(2);
+        if (key === 'devices') state.devices = list.map(deviceFromItem);
+        else if (key === 'cables') state.cables = list.map(cableFromItem);
+        else state.sections = list;
       } else {
         throw new Error(`Unknown top-level key: "${key}"`);
       }
@@ -608,6 +794,38 @@ Tests.test('fromYaml round-trips full state with devices and sections', () => {
   };
   const parsed = YamlCodec.fromYaml(YamlCodec.toYaml(s));
   Tests.assertEq(parsed, s);
+});
+
+Tests.test('fromYaml round-trips networking (port_groups + cables + network)', () => {
+  const s = {
+    rack: { name: 'My Rack', height_ru: 42 },
+    devices: [
+      { id: 'dev-001', label: 'Core Switch', size_ru: 1, position: 42, side: 'full', color: '#22c55e',
+        networkRole: 'switch', portGroups: [{ type: 'RJ45', count: 48 }, { type: '10GbE SFP+', count: 4 }] },
+      { id: 'dev-002', label: 'Patch Panel', size_ru: 1, position: 41, side: 'front', color: '#3b82f6',
+        networkRole: 'patch-panel', portGroups: [{ type: 'RJ45', count: 24 }] }
+    ],
+    sections: [],
+    cables: [
+      { id: 'cab-001', a: { deviceId: 'dev-002', portKey: 'g0:1' }, b: { deviceId: 'dev-001', portKey: 'g0:3' },
+        cableType: 'Cat6', length: '2m', order: 1 },
+      { id: 'cab-002', a: { deviceId: 'dev-001', portKey: 'g1:1' }, b: { external: 'ISP uplink' },
+        label: 'WAN', order: 2 }
+    ],
+    network: { labelTemplate: '{A.device}/{A.port} -> {B.device}/{B.port}' }
+  };
+  const parsed = YamlCodec.fromYaml(YamlCodec.toYaml(s));
+  Tests.assertEq(parsed, s);
+});
+
+Tests.test('toYaml omits networking keys for rack-only state', () => {
+  // Strip the explainer comment block (which documents these keys) before
+  // checking the emitted body.
+  const s = { rack: { name: 'X', height_ru: 10 }, devices: [], sections: [] };
+  const body = YamlCodec.toYaml(s).split('rack:')[1];
+  Tests.assert(!body.includes('cables:'), 'should not emit cables');
+  Tests.assert(!body.includes('network:'), 'should not emit network');
+  Tests.assert(!body.includes('port_groups:'), 'should not emit port_groups');
 });
 
 Tests.test('fromYaml ignores comments', () => {
@@ -774,6 +992,351 @@ Tests.test('validateState: overlapping devices flagged', () => {
     sections: []
   };
   Tests.assert(Validation.validateState(s).length > 0);
+});
+
+// =================================================================
+// Net — networking model. Ports are DERIVED from each device's
+// portGroups; cables connect a stable port key (or a free-text
+// external endpoint) on one device to another. Pure, no DOM.
+// =================================================================
+const Net = (() => {
+  // Per-role port limits. Patch panels are a single bank; switches and
+  // generic devices may have multiple typed groups (e.g. 48x RJ45 + 4x SFP+).
+  const CAPS = {
+    'patch-panel': { min: 1, max: 48, multiGroup: false, defaultType: 'RJ45' },
+    'switch':      { min: 1, max: 50, multiGroup: true,  defaultType: 'RJ45' },
+    'device':      { min: 0, max: 16, multiGroup: true,  defaultType: 'RJ45' }
+  };
+  const ROLES = ['patch-panel', 'switch', 'device'];
+
+  function inferRole(label) {
+    const s = String(label || '');
+    if (/patch\s*panel/i.test(s)) return 'patch-panel';
+    if (/switch/i.test(s)) return 'switch';
+    return 'device';
+  }
+
+  // Give a device sane networking defaults at read/edit time (legacy devices
+  // and rack-only YAML lack them). Mutates and returns the same object.
+  function ensureDeviceDefaults(device) {
+    if (!device) return device;
+    if (!ROLES.includes(device.networkRole)) device.networkRole = inferRole(device.label);
+    if (!Array.isArray(device.portGroups)) device.portGroups = [];
+    return device;
+  }
+
+  // Flatten port groups into a numbered, stably-keyed port list. The key
+  // 'g{groupIndex}:{posInGroup}' is durable; the 1..N index is cosmetic.
+  function portsOf(device) {
+    const groups = (device && Array.isArray(device.portGroups)) ? device.portGroups : [];
+    const ports = [];
+    let index = 0;
+    groups.forEach((g, gi) => {
+      const count = Math.max(0, Math.floor(Number(g.count) || 0));
+      const type = String(g.type || '');
+      for (let p = 1; p <= count; p++) {
+        index++;
+        ports.push({ key: `g${gi}:${p}`, index, type, groupIndex: gi, posInGroup: p });
+      }
+    });
+    return ports;
+  }
+
+  function portCount(device) { return portsOf(device).length; }
+
+  // Resolve a stable port key against a device's CURRENT groups.
+  function resolvePort(device, portKey) {
+    if (!device) return { ok: false, reason: 'device missing' };
+    const m = /^g(\d+):(\d+)$/.exec(String(portKey || ''));
+    if (!m) return { ok: false, reason: 'bad port key' };
+    const gi = parseInt(m[1], 10), pos = parseInt(m[2], 10);
+    const found = portsOf(device).find(p => p.groupIndex === gi && p.posInGroup === pos);
+    if (!found) return { ok: false, reason: 'port no longer exists' };
+    return { ok: true, index: found.index, type: found.type };
+  }
+
+  function deviceById(state, id) {
+    return (state.devices || []).find(d => d.id === id) || null;
+  }
+
+  function validatePortGroups(role, groups) {
+    const errors = [];
+    const cap = CAPS[role] || CAPS['device'];
+    if (!Array.isArray(groups)) return ['port groups must be a list'];
+    if (!cap.multiGroup && groups.length > 1) errors.push(`${role} supports a single port group`);
+    let total = 0;
+    groups.forEach((g, i) => {
+      const c = Number(g.count);
+      if (!Number.isInteger(c) || c < 0) errors.push(`group ${i + 1}: count must be a non-negative integer`);
+      else total += c;
+      if (g.type == null || String(g.type).trim() === '') errors.push(`group ${i + 1}: type is required`);
+    });
+    if (total < cap.min) errors.push(`total ports must be at least ${cap.min} for ${role}`);
+    if (total > cap.max) errors.push(`total ports must be at most ${cap.max} for ${role}`);
+    return errors;
+  }
+
+  // ---- Endpoints & cables ----
+  function isExternal(end) { return !!(end && typeof end.external === 'string'); }
+
+  function endpointInfo(state, end) {
+    if (isExternal(end)) {
+      return { ok: true, external: true, device: end.external, id: '', port: '', portType: '', role: '' };
+    }
+    const dev = deviceById(state, end ? end.deviceId : null);
+    if (!dev) return { ok: false, external: false, device: '?', id: (end && end.deviceId) || '', port: '?', portType: '', role: '' };
+    const r = resolvePort(dev, end.portKey);
+    return {
+      ok: r.ok, external: false,
+      device: dev.label, id: dev.id,
+      port: r.ok ? String(r.index) : '?',
+      portType: r.ok ? r.type : '',
+      role: dev.networkRole || inferRole(dev.label)
+    };
+  }
+
+  // Short human label for an endpoint, used in the cable list UI.
+  function endpointLabel(state, end) {
+    const info = endpointInfo(state, end);
+    return info.external ? info.device : `${info.device} p${info.port}`;
+  }
+
+  function cableStatus(state, cable) {
+    for (const e of [cable.a, cable.b]) {
+      if (isExternal(e)) continue;
+      const dev = deviceById(state, e ? e.deviceId : null);
+      if (!dev) return { status: 'broken', reason: 'device deleted' };
+      const r = resolvePort(dev, e.portKey);
+      if (!r.ok) return { status: 'broken', reason: r.reason };
+    }
+    return { status: 'ok', reason: '' };
+  }
+
+  // Build a cable label from a template with {A.*}/{B.*} tokens. Broken
+  // endpoints render their port as '?'; unknown tokens render empty.
+  function renderLabel(state, cable, template) {
+    const tpl = template != null ? template : ((state.network && state.network.labelTemplate) || '');
+    const A = endpointInfo(state, cable.a);
+    const B = endpointInfo(state, cable.b);
+    const map = {
+      'A.device': A.device, 'A.id': A.id, 'A.port': A.port, 'A.portType': A.portType, 'A.role': A.role,
+      'B.device': B.device, 'B.id': B.id, 'B.port': B.port, 'B.portType': B.portType, 'B.role': B.role,
+      'cableType': cable.cableType || '', 'length': cable.length || ''
+    };
+    return String(tpl).replace(/\{([^}]+)\}/g, (m, key) => {
+      const k = key.trim();
+      return Object.prototype.hasOwnProperty.call(map, k) ? String(map[k]) : '';
+    });
+  }
+
+  // Resolved label: a manual override wins; otherwise apply the template.
+  function effectiveLabel(state, cable) {
+    if (cable.label != null && cable.label !== '') return cable.label;
+    return renderLabel(state, cable, state.network && state.network.labelTemplate);
+  }
+
+  // Stable sort: explicit cable.order first, then logical wiring order
+  // (A device, A port, B device, B port).
+  function sortCables(state) {
+    const keyOf = end => {
+      if (isExternal(end)) return { dev: '~' + end.external, port: 0 };
+      const dev = deviceById(state, end ? end.deviceId : null);
+      const r = dev ? resolvePort(dev, end.portKey) : { ok: false };
+      return { dev: (end && end.deviceId) || '', port: r.ok ? r.index : 9999 };
+    };
+    return (state.cables || []).map((c, i) => ({ c, i })).sort((x, y) => {
+      const ox = Number.isFinite(x.c.order) ? x.c.order : x.i;
+      const oy = Number.isFinite(y.c.order) ? y.c.order : y.i;
+      if (ox !== oy) return ox - oy;
+      const ax = keyOf(x.c.a), ay = keyOf(y.c.a);
+      if (ax.dev !== ay.dev) return ax.dev < ay.dev ? -1 : 1;
+      if (ax.port !== ay.port) return ax.port - ay.port;
+      const bx = keyOf(x.c.b), by = keyOf(y.c.b);
+      if (bx.dev !== by.dev) return bx.dev < by.dev ? -1 : 1;
+      if (bx.port !== by.port) return bx.port - by.port;
+      return x.i - y.i;
+    }).map(o => o.c);
+  }
+
+  // ---- CSV (RFC 4180) ----
+  function csvField(v) {
+    const s = v == null ? '' : String(v);
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  function toCsv(state) {
+    const header = ['Order','Label','A','A Port','B','B Port','Cable Type','Length','Notes','Status'];
+    const rows = [header];
+    sortCables(state).forEach(c => {
+      const A = endpointInfo(state, c.a);
+      const B = endpointInfo(state, c.b);
+      rows.push([
+        Number.isFinite(c.order) ? c.order : '',
+        effectiveLabel(state, c),
+        A.device, A.external ? '' : A.port,
+        B.device, B.external ? '' : B.port,
+        c.cableType || '', c.length || '', c.notes || '',
+        cableStatus(state, c).status
+      ]);
+    });
+    return rows.map(r => r.map(csvField).join(',')).join('\r\n');
+  }
+
+  // When importing rack-only YAML (older files with no networking), carry the
+  // previous networking data forward by device id and drop cables whose
+  // in-rack endpoint no longer exists. New-format imports already carry it.
+  function mergeNetworkingAfterImport(prev, imported) {
+    const out = imported;
+    const hasNet = (out.devices || []).some(d => Array.isArray(d.portGroups) && d.portGroups.length) ||
+                   (Array.isArray(out.cables) && out.cables.length);
+    if (!hasNet) {
+      const prevById = new Map((prev.devices || []).map(d => [d.id, d]));
+      (out.devices || []).forEach(d => {
+        const p = prevById.get(d.id);
+        if (!p) return;
+        if (p.networkRole && d.networkRole == null) d.networkRole = p.networkRole;
+        if (Array.isArray(p.portGroups) && !Array.isArray(d.portGroups)) d.portGroups = structuredClone(p.portGroups);
+      });
+      const liveIds = new Set((out.devices || []).map(d => d.id));
+      out.cables = (prev.cables || []).filter(c =>
+        (isExternal(c.a) || liveIds.has(c.a.deviceId)) &&
+        (isExternal(c.b) || liveIds.has(c.b.deviceId)));
+    }
+    return State.normalize(out);
+  }
+
+  return {
+    CAPS, ROLES, inferRole, ensureDeviceDefaults, portsOf, portCount, resolvePort, deviceById,
+    validatePortGroups, isExternal, endpointInfo, endpointLabel, cableStatus, renderLabel,
+    effectiveLabel, sortCables, csvField, toCsv, mergeNetworkingAfterImport
+  };
+})();
+
+// =================================================================
+// Net tests
+// =================================================================
+Tests.test('Net.inferRole maps label keywords', () => {
+  Tests.assertEq(Net.inferRole('Patch panel 1U'), 'patch-panel');
+  Tests.assertEq(Net.inferRole('Core Switch'), 'switch');
+  Tests.assertEq(Net.inferRole('Server 2U'), 'device');
+});
+
+Tests.test('Net.portsOf flattens groups in order with stable keys', () => {
+  const dev = { portGroups: [{ type: 'RJ45', count: 48 }, { type: 'SFP+', count: 4 }] };
+  const ports = Net.portsOf(dev);
+  Tests.assertEq(ports.length, 52);
+  Tests.assertEq(ports[0].key, 'g0:1');
+  Tests.assertEq(ports[47].index, 48);
+  Tests.assertEq(ports[48].key, 'g1:1');
+  Tests.assertEq(ports[48].index, 49);
+  Tests.assertEq(ports[51].type, 'SFP+');
+});
+
+Tests.test('Net.validatePortGroups enforces role caps', () => {
+  Tests.assert(Net.validatePortGroups('patch-panel', [{ type: 'RJ45', count: 49 }]).length > 0);
+  Tests.assert(Net.validatePortGroups('patch-panel', [{ type: 'a', count: 1 }, { type: 'b', count: 1 }]).length > 0);
+  Tests.assert(Net.validatePortGroups('switch', [{ type: 'a', count: 48 }, { type: 'b', count: 4 }]).length > 0);
+  Tests.assertEq(Net.validatePortGroups('switch', [{ type: 'a', count: 48 }, { type: 'b', count: 2 }]), []);
+  Tests.assert(Net.validatePortGroups('device', [{ type: 'a', count: 17 }]).length > 0);
+  Tests.assertEq(Net.validatePortGroups('device', []), []);
+});
+
+Tests.test('Net.resolvePort: appending a group keeps existing keys stable', () => {
+  const dev = { portGroups: [{ type: 'RJ45', count: 4 }] };
+  Tests.assert(Net.resolvePort(dev, 'g0:3').ok);
+  dev.portGroups.push({ type: 'SFP+', count: 2 });
+  Tests.assertEq(Net.resolvePort(dev, 'g0:3').index, 3);
+  Tests.assertEq(Net.resolvePort(dev, 'g1:2').index, 6);
+});
+
+Tests.test('Net.resolvePort: shrinking a group breaks the removed port', () => {
+  const dev = { portGroups: [{ type: 'RJ45', count: 4 }] };
+  Tests.assert(Net.resolvePort(dev, 'g0:3').ok);
+  dev.portGroups[0].count = 2;
+  Tests.assert(!Net.resolvePort(dev, 'g0:3').ok);
+  Tests.assert(Net.resolvePort(dev, 'g0:1').ok);
+});
+
+Tests.test('Net.cableStatus: ok in-rack, broken after shrink, external always ok', () => {
+  const state = {
+    devices: [{ id: 'dev-001', label: 'Sw', networkRole: 'switch', portGroups: [{ type: 'RJ45', count: 4 }] }],
+    cables: []
+  };
+  const cable = { a: { deviceId: 'dev-001', portKey: 'g0:3' }, b: { external: 'ISP uplink' } };
+  Tests.assertEq(Net.cableStatus(state, cable).status, 'ok');
+  state.devices[0].portGroups[0].count = 2;
+  Tests.assertEq(Net.cableStatus(state, cable).status, 'broken');
+  const ext = { a: { external: 'A' }, b: { external: 'B' } };
+  Tests.assertEq(Net.cableStatus(state, ext).status, 'ok');
+});
+
+Tests.test('Net.renderLabel substitutes tokens and marks broken ports', () => {
+  const state = {
+    devices: [{ id: 'dev-001', label: 'Switch', networkRole: 'switch', portGroups: [{ type: 'RJ45', count: 4 }] }],
+    network: { labelTemplate: '{A.device} p{A.port} <-> {B.device}' }
+  };
+  const cable = { a: { deviceId: 'dev-001', portKey: 'g0:2' }, b: { external: 'ISP uplink' } };
+  Tests.assertEq(Net.renderLabel(state, cable, state.network.labelTemplate), 'Switch p2 <-> ISP uplink');
+  state.devices[0].portGroups[0].count = 1;
+  Tests.assertEq(Net.renderLabel(state, cable, state.network.labelTemplate), 'Switch p? <-> ISP uplink');
+});
+
+Tests.test('Net.csvField escapes per RFC 4180', () => {
+  Tests.assertEq(Net.csvField('plain'), 'plain');
+  Tests.assertEq(Net.csvField('a"b'), '"a""b"');
+  Tests.assertEq(Net.csvField('a,b'), '"a,b"');
+  Tests.assertEq(Net.csvField('a\nb'), '"a\nb"');
+});
+
+Tests.test('Net.toCsv produces header + one row per cable', () => {
+  const state = {
+    devices: [{ id: 'dev-001', label: 'Sw', networkRole: 'switch', portGroups: [{ type: 'RJ45', count: 4 }] }],
+    network: { labelTemplate: '{A.device}/{A.port}' },
+    cables: [
+      { id: 'cab-001', order: 1, a: { deviceId: 'dev-001', portKey: 'g0:1' }, b: { external: 'X' } },
+      { id: 'cab-002', order: 2, a: { deviceId: 'dev-001', portKey: 'g0:2' }, b: { external: 'Y' } }
+    ]
+  };
+  const lines = Net.toCsv(state).split('\r\n');
+  Tests.assertEq(lines.length, 3);
+  Tests.assert(lines[0].startsWith('Order,Label,A,A Port,B,B Port'), 'header row');
+});
+
+Tests.test('Net.sortCables honors explicit order', () => {
+  const state = {
+    devices: [],
+    cables: [
+      { id: 'cab-001', order: 2, a: { external: 'a' }, b: { external: 'b' } },
+      { id: 'cab-002', order: 1, a: { external: 'c' }, b: { external: 'd' } }
+    ]
+  };
+  const sorted = Net.sortCables(state);
+  Tests.assertEq(sorted[0].id, 'cab-002');
+  Tests.assertEq(sorted[1].id, 'cab-001');
+});
+
+Tests.test('Net.mergeNetworkingAfterImport restores by id and drops orphans', () => {
+  const prev = {
+    rack: { name: 'X', height_ru: 42 },
+    devices: [
+      { id: 'dev-001', label: 'Sw', networkRole: 'switch', portGroups: [{ type: 'RJ45', count: 4 }] },
+      { id: 'dev-002', label: 'PP', networkRole: 'patch-panel', portGroups: [{ type: 'RJ45', count: 24 }] }
+    ],
+    sections: [],
+    cables: [
+      { id: 'cab-001', order: 1, a: { deviceId: 'dev-001', portKey: 'g0:1' }, b: { deviceId: 'dev-002', portKey: 'g0:1' } },
+      { id: 'cab-002', order: 2, a: { deviceId: 'dev-002', portKey: 'g0:2' }, b: { external: 'wall' } }
+    ],
+    network: { labelTemplate: 't' }
+  };
+  // Rack-only import: dev-002 was removed and networking fields are absent.
+  const imported = {
+    rack: { name: 'X', height_ru: 42 },
+    devices: [{ id: 'dev-001', label: 'Sw', size_ru: 1, position: 1, side: 'front', color: '#fff' }],
+    sections: []
+  };
+  const merged = Net.mergeNetworkingAfterImport(prev, imported);
+  Tests.assertEq(merged.devices[0].portGroups.length, 1);
+  Tests.assertEq(merged.cables.length, 0); // both cables referenced dev-002, now gone
 });
 
 // =================================================================
@@ -972,7 +1535,7 @@ const Renderer = (() => {
     renderGutter('rear', state);
   }
 
-  return { renderAll };
+  return { renderAll, el };
 })();
 
 // =================================================================
@@ -1047,7 +1610,9 @@ const DragController = (() => {
             size_ru: dragging.size_ru,
             position: lastTarget.ru,
             side: lastTarget.side,
-            color: Palette.nextUnused(s.devices, s.sections)
+            color: Palette.nextUnused(s.devices, s.sections),
+            networkRole: Net.inferRole(dragging.label),
+            portGroups: []
           });
           return s;
         });
@@ -1175,7 +1740,8 @@ const DragController = (() => {
     () => {
       if (!confirm(`Delete device "${d.label}"?`)) return;
       State.setState(s => { s.devices = s.devices.filter(x => x.id !== d.id); return s; });
-    });
+    },
+    [{ text: 'Networking →', cls: 'btn', onClick: () => { View.set('networking'); NetRenderer.openDeviceTab(d.id); } }]);
   }
 
   function addCustomDevice() {
@@ -1204,7 +1770,9 @@ const DragController = (() => {
         size_ru: 1,
         position: placed,
         side: 'front',
-        color: Palette.nextUnused(s2.devices, s2.sections)
+        color: Palette.nextUnused(s2.devices, s2.sections),
+        networkRole: 'device',
+        portGroups: []
       });
       return s2;
     });
@@ -1408,7 +1976,10 @@ const DragController = (() => {
               const parsed = YamlCodec.fromYaml(String(reader.result));
               const errors = Validation.validateState(parsed);
               if (errors.length) { alert('Import rejected:\n\n' + errors.join('\n')); return; }
-              State.setState(() => parsed);
+              // Carry networking forward for older rack-only files; new-format
+              // files already include it (merge is a no-op then).
+              const merged = Net.mergeNetworkingAfterImport(State.get(), parsed);
+              State.setState(() => merged);
             } catch (e) {
               alert('Import failed: ' + e.message);
             }
@@ -1437,8 +2008,8 @@ const Popover = (() => {
     current = null;
   }
 
-  // anchorEl: DOM element to position next to. fields: array of {key, label, type, value, options?}. onSave: (values) => void. onDelete: () => void (optional).
-  function open(anchorEl, title, fields, onSave, onDelete) {
+  // anchorEl: DOM element to position next to. fields: array of {key, label, type, value, options?}. onSave: (values) => void. onDelete: () => void (optional). extraButtons: optional array of {text, cls, onClick}.
+  function open(anchorEl, title, fields, onSave, onDelete, extraButtons) {
     close();
     const rect = anchorEl.getBoundingClientRect();
     const wrap = document.createElement('div');
@@ -1485,6 +2056,16 @@ const Popover = (() => {
           ll.htmlFor = id; ll.textContent = opt;
           input.appendChild(r); input.appendChild(ll);
         }
+      } else if (f.type === 'select') {
+        input = document.createElement('select');
+        for (const opt of f.options) {
+          const o = document.createElement('option');
+          const val = typeof opt === 'object' ? opt.value : opt;
+          o.value = val;
+          o.textContent = typeof opt === 'object' ? opt.label : opt;
+          if (val === f.value) o.selected = true;
+          input.appendChild(o);
+        }
       } else if (f.type === 'color') {
         input = document.createElement('div');
         input.className = 'color-grid';
@@ -1518,6 +2099,7 @@ const Popover = (() => {
         if (f.type === 'text') values[f.key] = el.value;
         else if (f.type === 'number') values[f.key] = parseInt(el.value, 10);
         else if (f.type === 'radio') values[f.key] = el.querySelector('input:checked')?.value;
+        else if (f.type === 'select') values[f.key] = el.value;
         else if (f.type === 'color') values[f.key] = el.querySelector('.swatch.selected')?.getAttribute('data-color') || f.value;
       }
       onSave(values);
@@ -1536,6 +2118,13 @@ const Popover = (() => {
     cancel.textContent = 'Cancel';
     cancel.addEventListener('click', close);
     btnRow.appendChild(cancel);
+    for (const b of (extraButtons || [])) {
+      const btn = document.createElement('button');
+      btn.className = b.cls || 'btn';
+      btn.textContent = b.text;
+      btn.addEventListener('click', () => { close(); b.onClick(); });
+      btnRow.appendChild(btn);
+    }
     wrap.appendChild(btnRow);
 
     document.body.appendChild(wrap);
@@ -1566,7 +2155,7 @@ const Popover = (() => {
 // =================================================================
 const Settings = (() => {
   const KEY = 'rack-designer:ui:v1';
-  const defaults = { scrollLock: true };
+  const defaults = { scrollLock: true, activeView: 'rack', netOpenTabs: [], netActiveTab: 'cables' };
   let values = { ...defaults };
   try {
     const raw = localStorage.getItem(KEY);
@@ -1597,13 +2186,501 @@ function bindScrollSync() {
 }
 
 // =================================================================
+// View — top-level Rack / Networking tab switch.
+// =================================================================
+const View = (() => {
+  function get() { return Settings.get('activeView') === 'networking' ? 'networking' : 'rack'; }
+  function apply() {
+    const v = get();
+    const rack = document.getElementById('main-rack');
+    const net = document.getElementById('main-net');
+    if (rack) rack.style.display = v === 'rack' ? 'grid' : 'none';
+    if (net) net.style.display = v === 'networking' ? 'flex' : 'none';
+    document.querySelectorAll('#view-tabs .view-tab').forEach(b =>
+      b.classList.toggle('active', b.getAttribute('data-view') === v));
+  }
+  function set(v) {
+    Settings.set('activeView', v === 'networking' ? 'networking' : 'rack');
+    apply();
+    if (v === 'networking') NetRenderer.renderAll();
+  }
+  function init() {
+    const tabs = document.getElementById('view-tabs');
+    if (tabs) tabs.addEventListener('click', e => {
+      const btn = e.target.closest('.view-tab');
+      if (btn) set(btn.getAttribute('data-view'));
+    });
+  }
+  return { get, set, apply, init };
+})();
+
+// =================================================================
+// NetRenderer — owns #net-root. Inner tab strip (permanent "Cables"
+// tab + closeable per-device tabs), the cables overview, and a
+// per-device port/connection editor. Rebuilds from State on demand.
+// =================================================================
+const NetRenderer = (() => {
+  const el = Renderer.el;
+  let innerTabs = ['cables'];
+  let activeInner = 'cables';
+  let connecting = null; // { deviceId, portKey } — a port awaiting a connection
+  let errorMsg = '';
+
+  const ROLE_OPTS = [
+    { value: 'patch-panel', label: 'Patch panel' },
+    { value: 'switch', label: 'Switch' },
+    { value: 'device', label: 'Device / server / PDU' }
+  ];
+
+  function roleOf(d) { return Net.ROLES.includes(d.networkRole) ? d.networkRole : Net.inferRole(d.label); }
+  function groupsOf(d) { return Array.isArray(d.portGroups) ? d.portGroups : []; }
+  function endTouches(end, devId, portKey) { return !Net.isExternal(end) && end.deviceId === devId && end.portKey === portKey; }
+  function cablesForPort(state, devId, portKey) {
+    return (state.cables || []).filter(c => endTouches(c.a, devId, portKey) || endTouches(c.b, devId, portKey));
+  }
+  function maxOrder(state) {
+    return (state.cables || []).reduce((m, c) => Math.max(m, Number.isFinite(c.order) ? c.order : 0), 0);
+  }
+
+  function persist() {
+    Settings.set('netOpenTabs', innerTabs.filter(t => t !== 'cables'));
+    Settings.set('netActiveTab', activeInner);
+  }
+  function restore() {
+    const ids = new Set((State.get().devices || []).map(d => d.id));
+    const saved = Settings.get('netOpenTabs');
+    const open = Array.isArray(saved) ? saved.filter(id => ids.has(id)) : [];
+    innerTabs = ['cables', ...open];
+    const sa = Settings.get('netActiveTab');
+    activeInner = (sa === 'cables' || open.includes(sa)) ? sa : 'cables';
+  }
+
+  function openDeviceTab(deviceId) {
+    if (!Net.deviceById(State.get(), deviceId)) return;
+    if (!innerTabs.includes(deviceId)) innerTabs.push(deviceId);
+    activeInner = deviceId; connecting = null; errorMsg = '';
+    persist(); renderAll();
+  }
+  function closeTab(deviceId) {
+    innerTabs = innerTabs.filter(t => t !== deviceId);
+    if (activeInner === deviceId) activeInner = 'cables';
+    persist(); renderAll();
+  }
+  function setActive(tab) {
+    activeInner = tab; connecting = null; errorMsg = '';
+    persist(); renderAll();
+  }
+
+  // ---- small input builders (raw elements so we can read .value back) ----
+  function textInput(value, attrs) {
+    const e = document.createElement('input');
+    e.type = 'text'; e.value = value || '';
+    if (attrs) for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    return e;
+  }
+  function numberInput(value, min, max) {
+    const e = document.createElement('input');
+    e.type = 'number'; e.value = String(value);
+    if (min != null) e.min = String(min);
+    if (max != null) e.max = String(max);
+    return e;
+  }
+
+  // Endpoint picker: a <select> of every device port (grouped) plus an
+  // "External" option that reveals a free-text input. Returns { el, getValue }.
+  function buildEndpointPicker(state) {
+    const wrap = el('span', { cls: 'net-row' });
+    const sel = document.createElement('select');
+    for (const d of state.devices) {
+      const ports = Net.portsOf(d);
+      if (!ports.length) continue;
+      const og = document.createElement('optgroup');
+      og.label = `${d.label} (${roleOf(d)})`;
+      for (const p of ports) {
+        const o = document.createElement('option');
+        o.value = `P|${d.id}|${p.key}`;
+        o.textContent = `p${p.index}${p.type ? ' · ' + p.type : ''}`;
+        og.appendChild(o);
+      }
+      sel.appendChild(og);
+    }
+    const extOpt = document.createElement('option');
+    extOpt.value = 'X'; extOpt.textContent = 'External / free-text…';
+    sel.appendChild(extOpt);
+    const extInput = textInput('', { placeholder: 'e.g. ISP uplink' });
+    const syncExt = () => { extInput.style.display = sel.value === 'X' ? '' : 'none'; };
+    sel.addEventListener('change', syncExt);
+    syncExt();
+    wrap.appendChild(sel); wrap.appendChild(extInput);
+    function getValue() {
+      if (sel.value === 'X') { const t = extInput.value.trim(); return t ? { external: t } : null; }
+      const parts = sel.value.split('|');
+      return parts[0] === 'P' ? { deviceId: parts[1], portKey: parts[2] } : null;
+    }
+    return { el: wrap, getValue };
+  }
+
+  // ---- port-group commits (commit on change; reject over-cap) ----
+  function commitGroups(deviceId, newGroups) {
+    const dev = Net.deviceById(State.get(), deviceId);
+    const role = dev ? roleOf(dev) : 'device';
+    const errs = Net.validatePortGroups(role, newGroups);
+    if (errs.length) { errorMsg = errs[0]; renderAll(); return; }
+    errorMsg = '';
+    State.setState(s => {
+      const d = s.devices.find(x => x.id === deviceId);
+      if (d) d.portGroups = newGroups;
+      return s;
+    });
+  }
+
+  // ---- cable mutations ----
+  function addCable(a, b, extra) {
+    if (!a || !b) { errorMsg = 'Both ends are required.'; renderAll(); return; }
+    errorMsg = '';
+    State.setState(s => {
+      s.cables = s.cables || [];
+      s.cables.push(Object.assign({ id: State.nextCableId(s), a, b, order: maxOrder(s) + 1 }, extra || {}));
+      return s;
+    });
+    connecting = null;
+  }
+  function deleteCable(id) {
+    State.setState(s => { s.cables = (s.cables || []).filter(c => c.id !== id); return s; });
+  }
+  function moveCable(id, dir) {
+    State.setState(s => {
+      const sorted = Net.sortCables(s);
+      sorted.forEach((c, i) => { const cc = s.cables.find(x => x.id === c.id); if (cc) cc.order = i + 1; });
+      const idx = sorted.findIndex(c => c.id === id);
+      const j = idx + dir;
+      if (idx < 0 || j < 0 || j >= sorted.length) return s;
+      const a = s.cables.find(x => x.id === sorted[idx].id);
+      const b = s.cables.find(x => x.id === sorted[j].id);
+      const t = a.order; a.order = b.order; b.order = t;
+      return s;
+    });
+  }
+
+  function downloadCsv() {
+    const state = State.get();
+    const csv = Net.toCsv(state);
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safe = (state.rack.name || 'rack').replace(/[^A-Za-z0-9_-]+/g, '_') || 'rack';
+    a.href = url; a.download = safe + '-cables.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // ---- render: tab strip ----
+  function renderTabStrip(state) {
+    const strip = el('div', { cls: 'net-tabstrip' });
+    strip.appendChild(el('div', {
+      cls: 'net-tab' + (activeInner === 'cables' ? ' active' : ''),
+      text: 'Cables', on: { click: () => setActive('cables') }
+    }));
+    for (const id of innerTabs) {
+      if (id === 'cables') continue;
+      const d = Net.deviceById(state, id);
+      if (!d) continue;
+      const tab = el('div', { cls: 'net-tab' + (activeInner === id ? ' active' : ''), on: { click: () => setActive(id) } }, [d.label]);
+      tab.appendChild(el('button', {
+        cls: 'net-tab-close', text: '×', attrs: { title: 'Close tab', type: 'button' },
+        on: { click: e => { e.stopPropagation(); closeTab(id); } }
+      }));
+      strip.appendChild(tab);
+    }
+    return strip;
+  }
+
+  // ---- render: cables overview pane ----
+  function renderCablesPane(state) {
+    const pane = el('div', { cls: 'net-pane' });
+    const tplVal = (state.network && state.network.labelTemplate) || '';
+
+    // Controls
+    const tplInput = textInput(tplVal);
+    tplInput.classList.add('net-grow');
+    tplInput.addEventListener('change', () => {
+      State.setState(s => { s.network = s.network || {}; s.network.labelTemplate = tplInput.value; return s; });
+    });
+    const controls = el('div', { cls: 'net-card' }, [
+      el('div', { cls: 'net-row' }, [
+        el('span', { cls: 'net-muted', text: 'Label template' }), tplInput
+      ]),
+      el('div', { cls: 'net-muted', style: { marginTop: '4px' },
+        text: 'Tokens: {A.device} {A.id} {A.port} {A.portType} {A.role} (and {B.*}) {cableType} {length}' }),
+      el('div', { cls: 'net-row', style: { marginTop: '8px' } }, [
+        el('button', { cls: 'btn', text: 'Download cable labels (CSV)', on: { click: downloadCsv } }),
+        el('button', { cls: 'btn', text: 'Apply template to all', on: { click: () => {
+          if (!confirm('Set every cable\'s label to the current template result? This overwrites manual labels.')) return;
+          State.setState(s => { (s.cables || []).forEach(c => { c.label = Net.renderLabel(s, c, s.network && s.network.labelTemplate); }); return s; });
+        } } }),
+        el('button', { cls: 'btn', text: 'Renumber order', on: { click: () => {
+          State.setState(s => { const sorted = Net.sortCables(s); sorted.forEach((c, i) => { const cc = s.cables.find(x => x.id === c.id); if (cc) cc.order = i + 1; }); return s; });
+        } } }),
+        el('button', { cls: 'btn', text: 'Remove broken', on: { click: () => {
+          const broken = (state.cables || []).filter(c => Net.cableStatus(state, c).status === 'broken');
+          if (!broken.length) { alert('No broken cables.'); return; }
+          if (!confirm(`Remove ${broken.length} broken cable(s)?`)) return;
+          State.setState(s => { s.cables = (s.cables || []).filter(c => Net.cableStatus(s, c).status !== 'broken'); return s; });
+        } } })
+      ])
+    ]);
+
+    // Add cable form
+    const pickA = buildEndpointPicker(state);
+    const pickB = buildEndpointPicker(state);
+    const typeInput = textInput('', { placeholder: 'Cat6' }); typeInput.style.width = '90px';
+    const lenInput = textInput('', { placeholder: '2m' }); lenInput.style.width = '70px';
+    const addCard = el('div', { cls: 'net-card' }, [
+      el('div', { cls: 'net-row' }, [ el('span', { cls: 'net-muted', text: 'A' }), pickA.el ]),
+      el('div', { cls: 'net-row' }, [ el('span', { cls: 'net-muted', text: 'B' }), pickB.el ]),
+      el('div', { cls: 'net-row' }, [
+        el('span', { cls: 'net-muted', text: 'Type' }), typeInput,
+        el('span', { cls: 'net-muted', text: 'Length' }), lenInput,
+        el('button', { cls: 'btn primary', text: 'Add cable', on: { click: () => {
+          addCable(pickA.getValue(), pickB.getValue(), {
+            cableType: typeInput.value.trim() || undefined,
+            length: lenInput.value.trim() || undefined
+          });
+        } } })
+      ])
+    ]);
+
+    const section = el('div', { cls: 'net-section' }, [
+      el('h3', { text: 'Cables' }),
+      controls,
+      el('h3', { text: 'Add cable' }),
+      addCard
+    ]);
+    if (errorMsg) section.appendChild(el('div', { cls: 'net-badge broken', text: errorMsg, style: { marginBottom: '8px' } }));
+    section.appendChild(renderCableTable(state));
+    pane.appendChild(section);
+    return pane;
+  }
+
+  function renderCableTable(state) {
+    const cables = Net.sortCables(state);
+    if (!cables.length) return el('div', { cls: 'net-empty', text: 'No cables yet. Add one above, or open a device tab to connect its ports.' });
+    const table = el('table', { cls: 'net-table' });
+    const head = el('tr', {}, [
+      el('th', { text: '#' }), el('th', { text: 'Label' }), el('th', { text: 'A' }),
+      el('th', { text: 'B' }), el('th', { text: 'Type' }), el('th', { text: 'Len' }),
+      el('th', { text: 'Status' }), el('th', { text: '' })
+    ]);
+    table.appendChild(el('thead', {}, [head]));
+    const body = el('tbody', {});
+    cables.forEach(c => {
+      const st = Net.cableStatus(state, c);
+      const orderCell = el('td', {}, [
+        String(Number.isFinite(c.order) ? c.order : ''),
+        el('button', { cls: 'net-iconbtn', text: '▲', attrs: { title: 'Move up' }, on: { click: () => moveCable(c.id, -1) } }),
+        el('button', { cls: 'net-iconbtn', text: '▼', attrs: { title: 'Move down' }, on: { click: () => moveCable(c.id, 1) } })
+      ]);
+      const editBtn = el('button', { cls: 'net-iconbtn', text: 'Edit' });
+      editBtn.addEventListener('click', () => openCableEditor(editBtn, c.id));
+      const row = el('tr', { cls: st.status === 'broken' ? 'broken' : '' }, [
+        orderCell,
+        el('td', { text: Net.effectiveLabel(state, c) }),
+        el('td', { text: Net.endpointLabel(state, c.a) }),
+        el('td', { text: Net.endpointLabel(state, c.b) }),
+        el('td', { text: c.cableType || '' }),
+        el('td', { text: c.length || '' }),
+        el('td', {}, [ el('span', { cls: 'net-badge ' + st.status, text: st.status, attrs: st.reason ? { title: st.reason } : {} }) ]),
+        el('td', {}, [ editBtn, el('button', { cls: 'net-iconbtn', text: 'Del', on: { click: () => deleteCable(c.id) } }) ])
+      ]);
+      body.appendChild(row);
+    });
+    table.appendChild(body);
+    return el('div', { cls: 'net-card' }, [table]);
+  }
+
+  function openCableEditor(anchor, cableId) {
+    const c = (State.get().cables || []).find(x => x.id === cableId);
+    if (!c) return;
+    Popover.open(anchor, `Edit cable (${c.id})`, [
+      { key: 'cableType', label: 'Cable type', type: 'text', value: c.cableType || '' },
+      { key: 'length', label: 'Length', type: 'text', value: c.length || '' },
+      { key: 'label', label: 'Label override (blank = use template)', type: 'text', value: c.label || '' },
+      { key: 'notes', label: 'Notes', type: 'text', value: c.notes || '' }
+    ], values => {
+      State.setState(s => {
+        const cc = (s.cables || []).find(x => x.id === cableId);
+        if (!cc) return s;
+        const setOrDel = (k, v) => { if (v && String(v).trim()) cc[k] = String(v).trim(); else delete cc[k]; };
+        setOrDel('cableType', values.cableType);
+        setOrDel('length', values.length);
+        setOrDel('label', values.label);
+        setOrDel('notes', values.notes);
+        return s;
+      });
+    }, () => deleteCable(cableId));
+  }
+
+  // ---- render: per-device pane ----
+  function renderDevicePane(state, d) {
+    const pane = el('div', { cls: 'net-pane' });
+    const role = roleOf(d);
+    const groups = groupsOf(d);
+    const cap = Net.CAPS[role] || Net.CAPS['device'];
+    const total = Net.portCount({ portGroups: groups });
+
+    // Header + role select
+    const roleSel = document.createElement('select');
+    for (const o of ROLE_OPTS) {
+      const opt = document.createElement('option');
+      opt.value = o.value; opt.textContent = o.label; if (o.value === role) opt.selected = true;
+      roleSel.appendChild(opt);
+    }
+    roleSel.addEventListener('change', () => {
+      State.setState(s => { const dev = s.devices.find(x => x.id === d.id); if (dev) dev.networkRole = roleSel.value; return s; });
+    });
+    const header = el('div', { cls: 'net-card' }, [
+      el('div', { cls: 'net-row' }, [
+        el('span', { cls: 'net-pill', text: `RU ${d.position}`, style: { background: d.color } }),
+        el('strong', { text: d.label }),
+        el('span', { cls: 'net-muted', text: d.id }),
+        el('span', { cls: 'net-grow' }),
+        el('span', { cls: 'net-muted', text: 'Role' }), roleSel
+      ])
+    ]);
+
+    // Port-group editor
+    const groupRefs = [];
+    const groupsBox = el('div', {});
+    const readGroups = () => groupRefs.map(r => ({ type: r.typeEl.value.trim(), count: parseInt(r.countEl.value, 10) || 0 }));
+    groups.forEach((g, gi) => {
+      const typeEl = textInput(g.type, { placeholder: 'RJ45' });
+      const countEl = numberInput(g.count, 0, cap.max);
+      typeEl.addEventListener('change', () => commitGroups(d.id, readGroups()));
+      countEl.addEventListener('change', () => commitGroups(d.id, readGroups()));
+      groupRefs.push({ typeEl, countEl });
+      const removeBtn = el('button', { cls: 'net-iconbtn', text: 'Remove', on: { click: () => {
+        if (cablesForDevice(state, d.id).length &&
+            !confirm('Removing a port group renumbers later groups and can break existing cable links. Continue?')) return;
+        const next = readGroups(); next.splice(gi, 1);
+        commitGroups(d.id, next);
+      } } });
+      groupsBox.appendChild(el('div', { cls: 'net-portgroup' }, [
+        el('span', { cls: 'net-muted', text: `g${gi}` }),
+        typeEl, el('span', { cls: 'net-muted', text: '×' }), countEl, removeBtn
+      ]));
+    });
+    const canAddGroup = cap.multiGroup || groups.length === 0;
+    const addGroupBtn = el('button', { cls: 'btn', text: '+ Port group', attrs: canAddGroup ? {} : { disabled: 'disabled' }, on: { click: () => {
+      if (!canAddGroup) return;
+      commitGroups(d.id, [...readGroups(), { type: cap.defaultType, count: 1 }]);
+    } } });
+    const portCard = el('div', { cls: 'net-card' }, [
+      el('div', { cls: 'net-row' }, [
+        el('span', { cls: 'net-muted', text: `Total ports: ${total} / ${cap.max} (min ${cap.min})` })
+      ]),
+      groupsBox,
+      el('div', { cls: 'net-row' }, [addGroupBtn])
+    ]);
+    if (errorMsg) portCard.appendChild(el('div', { cls: 'net-badge broken', text: errorMsg, style: { marginTop: '8px' } }));
+
+    const section = el('div', { cls: 'net-section' }, [
+      el('h3', { text: 'Device' }), header,
+      el('h3', { text: 'Ports' }), portCard,
+      el('h3', { text: 'Connections' }), renderPortsTable(state, d)
+    ]);
+    pane.appendChild(section);
+    return pane;
+  }
+
+  function cablesForDevice(state, devId) {
+    return (state.cables || []).filter(c =>
+      (!Net.isExternal(c.a) && c.a.deviceId === devId) ||
+      (!Net.isExternal(c.b) && c.b.deviceId === devId));
+  }
+
+  function renderPortsTable(state, d) {
+    const ports = Net.portsOf(d);
+    if (!ports.length) return el('div', { cls: 'net-empty', text: 'No ports yet. Add a port group above.' });
+    const table = el('table', { cls: 'net-table' });
+    table.appendChild(el('thead', {}, [el('tr', {}, [
+      el('th', { text: 'Port' }), el('th', { text: 'Type' }), el('th', { text: 'Connected to' }), el('th', { text: '' })
+    ])]));
+    const body = el('tbody', {});
+    ports.forEach(p => {
+      const conns = cablesForPort(state, d.id, p.key);
+      const connCell = el('td', {});
+      if (conns.length) {
+        conns.forEach(c => {
+          const other = endTouches(c.a, d.id, p.key) ? c.b : c.a;
+          const st = Net.cableStatus(state, c);
+          connCell.appendChild(el('div', { cls: 'net-row' }, [
+            el('span', { text: Net.endpointLabel(state, other) }),
+            el('span', { cls: 'net-badge ' + st.status, text: st.status }),
+            el('button', { cls: 'net-iconbtn', text: 'Disconnect', on: { click: () => deleteCable(c.id) } })
+          ]));
+        });
+      } else {
+        connCell.appendChild(el('span', { cls: 'net-muted', text: '—' }));
+      }
+      const isConnecting = connecting && connecting.deviceId === d.id && connecting.portKey === p.key;
+      const actionCell = el('td', {});
+      actionCell.appendChild(el('button', {
+        cls: 'net-iconbtn', text: isConnecting ? 'Cancel' : 'Connect',
+        on: { click: () => { connecting = isConnecting ? null : { deviceId: d.id, portKey: p.key }; errorMsg = ''; renderAll(); } }
+      }));
+      const row = el('tr', {}, [
+        el('td', { text: 'p' + p.index }),
+        el('td', { text: p.type || '' }),
+        connCell, actionCell
+      ]);
+      body.appendChild(row);
+      if (isConnecting) {
+        const pick = buildEndpointPicker(state);
+        const form = el('tr', {}, [ el('td', { attrs: { colspan: '4' } }, [
+          el('div', { cls: 'net-row' }, [
+            el('span', { cls: 'net-muted', text: `Connect p${p.index} to` }), pick.el,
+            el('button', { cls: 'btn primary', text: 'Connect', on: { click: () => {
+              addCable({ deviceId: d.id, portKey: p.key }, pick.getValue());
+            } } })
+          ])
+        ])]);
+        body.appendChild(form);
+      }
+    });
+    table.appendChild(body);
+    return el('div', { cls: 'net-card' }, [table]);
+  }
+
+  function renderAll() {
+    const root = document.getElementById('net-root');
+    if (!root) return;
+    const state = State.get();
+    const ids = new Set((state.devices || []).map(d => d.id));
+    innerTabs = ['cables', ...innerTabs.filter(t => t !== 'cables' && ids.has(t))];
+    if (activeInner !== 'cables' && !ids.has(activeInner)) activeInner = 'cables';
+    let pane;
+    if (activeInner === 'cables') pane = renderCablesPane(state);
+    else pane = renderDevicePane(state, Net.deviceById(state, activeInner));
+    root.replaceChildren(renderTabStrip(state), pane);
+  }
+
+  function init() { restore(); }
+
+  return { init, renderAll, openDeviceTab, closeTab };
+})();
+
+// =================================================================
 // Boot
 // =================================================================
 State.load();
-State.onChange(() => Renderer.renderAll());
+View.init();
+State.onChange(() => { Renderer.renderAll(); NetRenderer.renderAll(); });
 Renderer.renderAll();
+NetRenderer.init();
+NetRenderer.renderAll();
 DragController.init();
 bindScrollSync();
+View.apply();
 
 if (new URLSearchParams(location.search).get('test') === '1') {
   Tests.run();

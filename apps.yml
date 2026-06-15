@@ -38,7 +38,7 @@ apps:
   - file: rack-designer.html
     title: Rack Designer
     emoji: "📱"
-    summary: Design server rack layouts with drag-and-drop equipment placement.
+    summary: Design server rack layouts with drag-and-drop placement, plus a networking tab to wire device ports and export cable labels.
 
   - file: CSV-tracker.html
     title: CSV Tracker
