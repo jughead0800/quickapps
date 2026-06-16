@@ -13,7 +13,9 @@
       "Bash(node -e \"try{require.resolve\\('playwright'\\);console.log\\('playwright: yes'\\)}catch\\(e\\){console.log\\('playwright: no'\\)}\")",
       "Bash(node -e \"try{require.resolve\\('jsdom'\\);console.log\\('jsdom: yes'\\)}catch\\(e\\){console.log\\('jsdom: no'\\)}\")",
       "Read(//Applications/Google Chrome.app/**)",
-      "Read(//Applications/**)"
+      "Read(//Applications/**)",
+      "Bash('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' --headless=new --disable-gpu --no-sandbox --force-device-scale-factor=1 --hide-scrollbars --window-size=1400,900 --virtual-time-budget=2500 --screenshot=/tmp/fp-shot.png file:///Users/nic/Documents/GitHub/QuicApps/apps/floor-plan-designer.html)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }
