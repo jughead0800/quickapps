@@ -8,7 +8,12 @@
       "Bash(node --check /tmp/qa-template.js)",
       "Bash(cp index.html /tmp/idx.before)",
       "Bash(sh build-index.sh)",
-      "Bash(cp /tmp/idx.before index.html)"
+      "Bash(cp /tmp/idx.before index.html)",
+      "Bash(node -e \"try{require.resolve\\('puppeteer'\\);console.log\\('puppeteer: yes'\\)}catch\\(e\\){console.log\\('puppeteer: no'\\)}\")",
+      "Bash(node -e \"try{require.resolve\\('playwright'\\);console.log\\('playwright: yes'\\)}catch\\(e\\){console.log\\('playwright: no'\\)}\")",
+      "Bash(node -e \"try{require.resolve\\('jsdom'\\);console.log\\('jsdom: yes'\\)}catch\\(e\\){console.log\\('jsdom: no'\\)}\")",
+      "Read(//Applications/Google Chrome.app/**)",
+      "Read(//Applications/**)"
     ]
   }
 }

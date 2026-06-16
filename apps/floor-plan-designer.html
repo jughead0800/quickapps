@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Floor Plan Designer</title>
+  <style>
+    :root {
+      --bg: #1a1a1a; --panel: #2a2a2a; --inset: #1e1e1e; --border: #3a3a3a;
+      --text: #e0e0e0; --muted: #888; --accent: #4a9eff;
+      --success: #4caf50; --danger: #f44336;
+      --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text);
+           overflow: hidden; -webkit-user-select: none; user-select: none; }
+    #app { display: flex; flex-direction: column; height: 100vh; }
+
+    /* ---- header ---- */
+    header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+             padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--border); }
+    .brand { font-size: 1.05em; color: var(--accent); white-space: nowrap; }
+    .brand b { color: var(--text); }
+    .actions { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-left: auto; }
+    .group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    header label { font-size: 0.85em; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+    select, header input[type="number"] {
+      font-family: var(--font); font-size: 0.85em; background: var(--inset); color: var(--text);
+      border: 1px solid var(--border); border-radius: 5px; padding: 5px 7px; outline: none;
+    }
+    select:focus, input:focus { border-color: var(--accent); }
+    button {
+      font-family: var(--font); font-size: 0.85em; background: var(--inset); color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px; padding: 7px 11px; cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+    button.primary:hover { filter: brightness(1.1); }
+
+    /* ---- body ---- */
+    .body { display: flex; flex: 1; min-height: 0; }
+    .toolbar { display: flex; flex-direction: column; gap: 6px; padding: 10px 8px;
+               background: var(--panel); border-right: 1px solid var(--border); width: 86px; flex-shrink: 0; }
+    .tool { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px;
+            font-size: 0.72em; color: var(--muted); }
+    .tool span { font-size: 1em; }
+    .tool .ico { font-size: 1.25em; line-height: 1; color: var(--text); }
+    .tool.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .tool.active .ico { color: #fff; }
+
+    .canvas-wrap { position: relative; flex: 1; min-width: 0; background: #cfd3da; overflow: hidden; }
+    canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+    .props { width: 268px; flex-shrink: 0; background: var(--panel); border-left: 1px solid var(--border);
+             padding: 14px; overflow-y: auto; }
+    .props h2 { font-size: 0.8em; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+                margin-bottom: 12px; font-weight: 600; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 0.78em; color: var(--muted); margin-bottom: 4px; }
+    .field input[type="text"], .field input[type="number"], .field textarea {
+      width: 100%; font-family: var(--font); font-size: 0.92em; background: var(--inset); color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px; padding: 8px 9px; outline: none;
+    }
+    .field textarea { resize: vertical; min-height: 54px; }
+    .readout { font-size: 0.92em; color: var(--text); padding: 6px 0; }
+    .row { display: flex; gap: 8px; }
+    .row > * { flex: 1; }
+    .hint { font-size: 0.78em; color: var(--muted); line-height: 1.5; }
+    .hint b { color: var(--text); }
+    .danger { background: #3a2020; border-color: #5a2a2a; color: #ff8a80; }
+    .danger:hover { border-color: var(--danger); }
+    .summary-stat { display: flex; justify-content: space-between; font-size: 0.85em; padding: 4px 0;
+                    border-bottom: 1px solid var(--border); }
+    .summary-stat span:last-child { color: var(--accent); }
+
+    /* ---- status ---- */
+    .status { display: flex; gap: 18px; flex-wrap: wrap; padding: 5px 14px; background: var(--panel);
+              border-top: 1px solid var(--border); font-size: 0.78em; color: var(--muted); }
+    .status b { color: var(--text); font-weight: 600; }
+
+    @media (max-width: 768px) {
+      .brand { font-size: 0.95em; }
+      .body { flex-direction: column; }
+      .toolbar { flex-direction: row; width: auto; overflow-x: auto; border-right: none;
+                 border-bottom: 1px solid var(--border); }
+      .tool { flex-shrink: 0; }
+      .canvas-wrap { flex: 1; min-height: 240px; }
+      .props { width: auto; max-height: 38vh; border-left: none; border-top: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="brand">📐 <b>Floor Plan Designer</b></div>
+      <div class="actions">
+        <div class="group">
+          <label>Units
+            <select id="unitSel">
+              <option value="metric">Metric (m)</option>
+              <option value="imperial">Imperial (ft)</option>
+            </select>
+          </label>
+          <label>Grid <input id="gridInput" type="number" step="0.1" min="0.05" style="width:62px"> <span id="gridUnit">m</span></label>
+          <label><input id="snapChk" type="checkbox" checked> Snap</label>
+          <label><input id="lenChk" type="checkbox" checked> Lengths</label>
+        </div>
+        <div class="group">
+          <button id="zoomOut" title="Zoom out">−</button>
+          <button id="zoomIn" title="Zoom in">+</button>
+          <button id="fitBtn" title="Fit plan to view">Fit</button>
+          <button id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
+          <button id="redoBtn" title="Redo (Ctrl+Y)">↷</button>
+        </div>
+        <div class="group">
+          <button id="saveJson" title="Save plan as .json">Save</button>
+          <button id="openJson" title="Open a .json plan">Open</button>
+          <button id="clearBtn" class="danger">Clear</button>
+          <button id="exportPng" class="primary">Download PNG</button>
+          <input id="fileInput" type="file" accept=".json,application/json" hidden>
+        </div>
+      </div>
+    </header>
+
+    <div class="body">
+      <div class="toolbar" id="toolbar">
+        <button class="tool active" data-tool="select" title="Select / move (V)"><span class="ico">⬚</span><span>Select</span></button>
+        <button class="tool" data-tool="pan" title="Pan (or hold Space)"><span class="ico">✋</span><span>Pan</span></button>
+        <button class="tool" data-tool="wall" title="Wall — click corners (W)"><span class="ico">／</span><span>Wall</span></button>
+        <button class="tool" data-tool="room" title="Room — drag rectangle (R)"><span class="ico">▢</span><span>Room</span></button>
+        <button class="tool" data-tool="door" title="Door — click a wall (D)"><span class="ico">🚪</span><span>Door</span></button>
+        <button class="tool" data-tool="window" title="Window — click a wall (N)"><span class="ico">🪟</span><span>Window</span></button>
+        <button class="tool" data-tool="dim" title="Dimension — click 2 points (M)"><span class="ico">↔</span><span>Dim</span></button>
+        <button class="tool" data-tool="label" title="Label — click to place (T)"><span class="ico">🅣</span><span>Label</span></button>
+      </div>
+
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="cv"></canvas>
+      </div>
+
+      <aside class="props" id="props"></aside>
+    </div>
+
+    <footer class="status" id="status"></footer>
+  </div>
+
+  <script>
+  'use strict';
+  (function () {
+    // ===================== constants & drawing palette =====================
+    const FT = 0.3048, IN = 0.0254, M_PER_FT = 3.280839895;
+    const PAPER = '#ffffff', GRID_MINOR = '#e6e9ef', GRID_MAJOR = '#d2d8e2';
+    const INK = '#2a2f3a', LABEL_INK = '#1a1a1a', LEN_INK = '#6b7280';
+    const DIM = '#c0392b', ACCENT = '#4a9eff';
+    const TOL_PX = 7;             // hit-test tolerance in screen px
+    const DEF_WALL = 0.1;         // default wall thickness (m)
+    const DEF_DOOR = 0.8, DEF_WIN = 1.0; // default opening widths (m)
+    const DEF_LABEL = 0.35;       // default label text height (m)
+
+    // ===================== state =====================
+    let M = { walls: [], openings: [], dimensions: [], labels: [] };
+    let S = { unitSystem: 'metric', gridM: 0.5, snap: true, showLen: true };
+    let V = { ppm: 60, panX: 90, panY: 90 };   // ppm = pixels per metre
+    let tool = 'select';
+    let sel = null;                 // { type, id }
+    let act = null;                 // current pointer interaction
+    let hoverPt = null;             // snapped cursor (world) for previews
+    let spaceDown = false, shiftDown = false;
+    let nextId = 1;
+    const undoStack = [], redoStack = [];
+
+    // ===================== DOM =====================
+    const $ = (id) => document.getElementById(id);
+    const cv = $('cv'), ctx = cv.getContext('2d');
+    const wrap = $('canvasWrap');
+    let cssW = 0, cssH = 0, dpr = 1;
+
+    // ===================== small helpers =====================
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const dist = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+    const uid = () => nextId++;
+    const w2s = (p) => ({ x: p.x * V.ppm + V.panX, y: p.y * V.ppm + V.panY });
+    const s2w = (p) => ({ x: (p.x - V.panX) / V.ppm, y: (p.y - V.panY) / V.ppm });
+
+    function wallById(id) { return M.walls.find(w => w.id === id) || null; }
+    function resolveSel() {
+      if (!sel) return null;
+      const arr = { wall: M.walls, opening: M.openings, dimension: M.dimensions, label: M.labels }[sel.type];
+      return arr ? (arr.find(e => e.id === sel.id) || null) : null;
+    }
+
+    // ----- unit formatting / parsing -----
+    function fmtLen(m) {
+      if (S.unitSystem === 'metric') {
+        if (Math.abs(m) < 1) return Math.round(m * 100) + ' cm';
+        return m.toFixed(2) + ' m';
+      }
+      const sign = m < 0 ? '-' : '';
+      let totIn = Math.abs(m) / IN;
+      let ft = Math.floor(totIn / 12);
+      let inch = Math.round(totIn - ft * 12);
+      if (inch === 12) { ft++; inch = 0; }
+      return sign + ft + "' " + inch + '"';
+    }
+    function parseLen(str) {
+      str = String(str).trim().toLowerCase();
+      if (!str) return null;
+      let m;
+      if (S.unitSystem === 'metric') {
+        if ((m = str.match(/^(-?[\d.]+)\s*cm$/))) return parseFloat(m[1]) / 100;
+        if ((m = str.match(/^(-?[\d.]+)\s*mm$/))) return parseFloat(m[1]) / 1000;
+        if ((m = str.match(/^(-?[\d.]+)\s*m?$/))) return parseFloat(m[1]);
+        return null;
+      }
+      let ft = 0, inch = 0, ok = false;
+      if ((m = str.match(/(-?[\d.]+)\s*'/))) { ft = parseFloat(m[1]); ok = true; }
+      if ((m = str.match(/(-?[\d.]+)\s*"/))) { inch = parseFloat(m[1]); ok = true; }
+      if (ok) return (ft * 12 + inch) * IN;
+      if ((m = str.match(/^(-?[\d.]+)$/))) return parseFloat(m[1]) * FT;
+      return null;
+    }
+
+    // ===================== history / persistence =====================
+    function pushHistory() {
+      undoStack.push(JSON.stringify(M));
+      if (undoStack.length > 80) undoStack.shift();
+      redoStack.length = 0;
+    }
+    function applySnapshot(s) { M = JSON.parse(s); }
+    function undo() {
+      if (!undoStack.length) return;
+      redoStack.push(JSON.stringify(M));
+      applySnapshot(undoStack.pop());
+      sel = null; afterChange();
+    }
+    function redo() {
+      if (!redoStack.length) return;
+      undoStack.push(JSON.stringify(M));
+      applySnapshot(redoStack.pop());
+      sel = null; afterChange();
+    }
+
+    let saveTimer = null;
+    function autosave() {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        try { localStorage.setItem('floorplan.state', JSON.stringify({ M, S, V })); } catch (e) {}
+      }, 400);
+    }
+    function loadSaved() {
+      try {
+        const raw = localStorage.getItem('floorplan.state');
+        if (!raw) return false;
+        const d = JSON.parse(raw);
+        if (d.M) M = d.M;
+        if (d.S) S = Object.assign(S, d.S);
+        if (d.V) V = Object.assign(V, d.V);
+        recomputeNextId();
+        return true;
+      } catch (e) { return false; }
+    }
+    function recomputeNextId() {
+      let mx = 0;
+      [...M.walls, ...M.openings, ...M.dimensions, ...M.labels].forEach(e => { if (e.id >= mx) mx = e.id; });
+      nextId = mx + 1;
+    }
+
+    // called after any model mutation that should persist & redraw
+    function afterChange() { render(); renderProps(); updateStatus(); autosave(); }
+
+    // ===================== geometry helpers =====================
+    function distToSeg(p, a, b) {
+      const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy;
+      let t = l2 ? ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2 : 0;
+      t = clamp(t, 0, 1);
+      return Math.hypot(p.x - (a.x + dx * t), p.y - (a.y + dy * t));
+    }
+    function projectOnWall(w, p) {
+      const dx = w.b.x - w.a.x, dy = w.b.y - w.a.y, l2 = dx * dx + dy * dy;
+      const len = Math.sqrt(l2) || 1;
+      let t = l2 ? ((p.x - w.a.x) * dx + (p.y - w.a.y) * dy) / l2 : 0;
+      t = clamp(t, 0, 1);
+      return { offset: t * len, len };
+    }
+    function wallAxes(w) {
+      const len = dist(w.a, w.b) || 1;
+      const ux = (w.b.x - w.a.x) / len, uy = (w.b.y - w.a.y) / len;
+      return { len, ux, uy, nx: -uy, ny: ux };
+    }
+
+    // snap a world point to endpoints (optional) then grid
+    function snap(p, endpointSnap) {
+      if (endpointSnap) {
+        let bd = (TOL_PX * 1.6) / V.ppm, found = null;
+        M.walls.forEach(w => [w.a, w.b].forEach(v => {
+          const d = dist(v, p); if (d < bd) { bd = d; found = v; }
+        }));
+        if (found) return { x: found.x, y: found.y };
+      }
+      if (S.snap) return { x: Math.round(p.x / S.gridM) * S.gridM, y: Math.round(p.y / S.gridM) * S.gridM };
+      return { x: p.x, y: p.y };
+    }
+    // constrain b to orthogonal/45 from a (Shift while drawing)
+    function ortho(a, b) {
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const ang = Math.atan2(dy, dx);
+      const step = Math.PI / 4;
+      const snapped = Math.round(ang / step) * step;
+      const r = Math.hypot(dx, dy);
+      return { x: a.x + Math.cos(snapped) * r, y: a.y + Math.sin(snapped) * r };
+    }
+
+    // ===================== hit testing =====================
+    function handleHit(wld) {
+      const ent = resolveSel(); if (!ent) return null;
+      const tol = (TOL_PX * 1.4) / V.ppm;
+      if (sel.type === 'wall') {
+        if (dist(wld, ent.a) < tol) return 'a';
+        if (dist(wld, ent.b) < tol) return 'b';
+      } else if (sel.type === 'dimension') {
+        if (dist(wld, ent.a) < tol) return 'a';
+        if (dist(wld, ent.b) < tol) return 'b';
+      }
+      return null;
+    }
+    function hitTest(wld) {
+      const tol = TOL_PX / V.ppm;
+      // openings
+      for (let i = M.openings.length - 1; i >= 0; i--) {
+        const o = M.openings[i], w = wallById(o.wallId); if (!w) continue;
+        const ax = wallAxes(w);
+        const off = clamp(o.offset, 0, Math.max(0, ax.len - o.width));
+        const s = { x: w.a.x + ax.ux * off, y: w.a.y + ax.uy * off };
+        const e = { x: w.a.x + ax.ux * (off + o.width), y: w.a.y + ax.uy * (off + o.width) };
+        if (distToSeg(wld, s, e) < w.thickness / 2 + tol) return { type: 'opening', id: o.id };
+      }
+      // labels
+      for (let i = M.labels.length - 1; i >= 0; i--) {
+        const l = M.labels[i];
+        const wWorld = l.text.length * l.size * 0.55 + 0.1;
+        if (wld.x >= l.x - 0.05 && wld.x <= l.x + wWorld && wld.y >= l.y - 0.05 && wld.y <= l.y + l.size + 0.05)
+          return { type: 'label', id: l.id };
+      }
+      // dimensions (along the offset line)
+      for (let i = M.dimensions.length - 1; i >= 0; i--) {
+        const d = M.dimensions[i], ax = (function () {
+          const len = dist(d.a, d.b) || 1; return { nx: -(d.b.y - d.a.y) / len, ny: (d.b.x - d.a.x) / len };
+        })();
+        const A = { x: d.a.x + ax.nx * d.off, y: d.a.y + ax.ny * d.off };
+        const B = { x: d.b.x + ax.nx * d.off, y: d.b.y + ax.ny * d.off };
+        if (distToSeg(wld, A, B) < tol) return { type: 'dimension', id: d.id };
+      }
+      // walls
+      for (let i = M.walls.length - 1; i >= 0; i--) {
+        const w = M.walls[i];
+        if (distToSeg(wld, w.a, w.b) < w.thickness / 2 + tol) return { type: 'wall', id: w.id };
+      }
+      return null;
+    }
+    function nearestWall(wld) {
+      let best = null, bd = Infinity;
+      const tol = (TOL_PX * 2) / V.ppm;
+      M.walls.forEach(w => {
+        const d = distToSeg(wld, w.a, w.b);
+        if (d < bd) { bd = d; best = w; }
+      });
+      return (best && bd < best.thickness / 2 + tol) ? best : null;
+    }
+
+    // ===================== entity creation =====================
+    function addWall(a, b, thick) {
+      const w = { id: uid(), a: { x: a.x, y: a.y }, b: { x: b.x, y: b.y }, thickness: thick || DEF_WALL };
+      M.walls.push(w); return w;
+    }
+    function addOpening(w, type, offset) {
+      const ax = wallAxes(w);
+      const width = type === 'door' ? DEF_DOOR : DEF_WIN;
+      const off = clamp(offset - width / 2, 0, Math.max(0, ax.len - width));
+      const o = { id: uid(), wallId: w.id, type, offset: off, width, flipEnd: false, flipSide: false };
+      M.openings.push(o); return o;
+    }
+    function addDimension(a, b) {
+      const d = { id: uid(), a: { x: a.x, y: a.y }, b: { x: b.x, y: b.y }, off: 0.4 };
+      M.dimensions.push(d); return d;
+    }
+    function addLabel(p, text) {
+      const l = { id: uid(), x: p.x, y: p.y, text: text || 'Label', size: DEF_LABEL };
+      M.labels.push(l); return l;
+    }
+    function deleteSel() {
+      const ent = resolveSel(); if (!ent) return;
+      pushHistory();
+      if (sel.type === 'wall') {
+        M.walls = M.walls.filter(w => w.id !== ent.id);
+        M.openings = M.openings.filter(o => o.wallId !== ent.id); // openings die with their wall
+      } else {
+        const key = sel.type === 'opening' ? 'openings' : sel.type === 'dimension' ? 'dimensions' : 'labels';
+        M[key] = M[key].filter(e => e.id !== ent.id);
+      }
+      sel = null; afterChange();
+    }
+
+    // ===================== rendering =====================
+    function fontPx(view) { return clamp(0.24 * view.ppm, 10, 40); }
+
+    function strokeLine(c, p, q, color, w) {
+      c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(q.x, q.y);
+      c.strokeStyle = color; c.lineWidth = w; c.stroke();
+    }
+    function tagText(c, x, y, text, color, bg, fs) {
+      c.font = fs + 'px ' + 'Segoe UI, sans-serif';
+      const w = c.measureText(text).width;
+      c.fillStyle = bg; c.fillRect(x - w / 2 - 4, y - fs / 2 - 3, w + 8, fs + 6);
+      c.fillStyle = color; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(text, x, y); c.textAlign = 'start';
+    }
+
+    // master draw — used for both the screen and PNG export
+    function draw(c, view, opt) {
+      const tw2s = (p) => ({ x: p.x * view.ppm + view.panX, y: p.y * view.ppm + view.panY });
+      const fs = fontPx(view);
+      c.fillStyle = opt.bg; c.fillRect(0, 0, opt.w, opt.h);
+
+      // grid
+      if (opt.grid && S.gridM * view.ppm >= 6) {
+        const left = (0 - view.panX) / view.ppm, right = (opt.w - view.panX) / view.ppm;
+        const top = (0 - view.panY) / view.ppm, bot = (opt.h - view.panY) / view.ppm;
+        c.lineWidth = 1;
+        for (let k = Math.ceil(left / S.gridM); k * S.gridM <= right; k++) {
+          const x = k * S.gridM * view.ppm + view.panX;
+          c.strokeStyle = (k % 5 === 0) ? GRID_MAJOR : GRID_MINOR;
+          c.beginPath(); c.moveTo(x, 0); c.lineTo(x, opt.h); c.stroke();
+        }
+        for (let k = Math.ceil(top / S.gridM); k * S.gridM <= bot; k++) {
+          const y = k * S.gridM * view.ppm + view.panY;
+          c.strokeStyle = (k % 5 === 0) ? GRID_MAJOR : GRID_MINOR;
+          c.beginPath(); c.moveTo(0, y); c.lineTo(opt.w, y); c.stroke();
+        }
+      }
+
+      // dimensions (under walls)
+      M.dimensions.forEach(d => {
+        const len = dist(d.a, d.b); if (len <= 0) return;
+        const nx = -(d.b.y - d.a.y) / len, ny = (d.b.x - d.a.x) / len;
+        const A = tw2s({ x: d.a.x + nx * d.off, y: d.a.y + ny * d.off });
+        const B = tw2s({ x: d.b.x + nx * d.off, y: d.b.y + ny * d.off });
+        const as = tw2s(d.a), bs = tw2s(d.b);
+        strokeLine(c, as, A, DIM, 1);
+        strokeLine(c, bs, B, DIM, 1);
+        strokeLine(c, A, B, DIM, 1.5);
+        // end ticks
+        const ang = Math.atan2(B.y - A.y, B.x - A.x) + Math.PI / 4;
+        const tk = 6, tx = Math.cos(ang) * tk, ty = Math.sin(ang) * tk;
+        strokeLine(c, { x: A.x - tx, y: A.y - ty }, { x: A.x + tx, y: A.y + ty }, DIM, 1.5);
+        strokeLine(c, { x: B.x - tx, y: B.y - ty }, { x: B.x + tx, y: B.y + ty }, DIM, 1.5);
+        tagText(c, (A.x + B.x) / 2, (A.y + B.y) / 2, fmtLen(len), DIM, PAPER, fs);
+      });
+
+      // walls (filled rectangles -> clean corners)
+      M.walls.forEach(w => {
+        const a = tw2s(w.a), b = tw2s(w.b), half = w.thickness * view.ppm / 2;
+        const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1;
+        const nx = -dy / l * half, ny = dx / l * half;
+        c.beginPath();
+        c.moveTo(a.x + nx, a.y + ny); c.lineTo(b.x + nx, b.y + ny);
+        c.lineTo(b.x - nx, b.y - ny); c.lineTo(a.x - nx, a.y - ny); c.closePath();
+        c.fillStyle = INK; c.fill();
+      });
+
+      // openings (cut gap + symbol)
+      M.openings.forEach(o => {
+        const w = wallById(o.wallId); if (!w) return;
+        const ax = wallAxes(w);
+        const off = clamp(o.offset, 0, Math.max(0, ax.len - o.width));
+        const sW = { x: w.a.x + ax.ux * off, y: w.a.y + ax.uy * off };
+        const eW = { x: w.a.x + ax.ux * (off + o.width), y: w.a.y + ax.uy * (off + o.width) };
+        const s = tw2s(sW), e = tw2s(eW);
+        const halfPx = w.thickness * view.ppm / 2;
+        const nx = ax.nx, ny = ax.ny;             // unit perpendicular (orientation preserved on screen)
+        // erase gap
+        (function () {
+          const hx = nx * halfPx * 1.1, hy = ny * halfPx * 1.1;
+          c.beginPath();
+          c.moveTo(s.x + hx, s.y + hy); c.lineTo(e.x + hx, e.y + hy);
+          c.lineTo(e.x - hx, e.y - hy); c.lineTo(s.x - hx, s.y - hy); c.closePath();
+          c.fillStyle = PAPER; c.fill();
+        })();
+        // jamb ticks
+        strokeLine(c, { x: s.x + nx * halfPx, y: s.y + ny * halfPx }, { x: s.x - nx * halfPx, y: s.y - ny * halfPx }, INK, 1.5);
+        strokeLine(c, { x: e.x + nx * halfPx, y: e.y + ny * halfPx }, { x: e.x - nx * halfPx, y: e.y - ny * halfPx }, INK, 1.5);
+        if (o.type === 'window') {
+          strokeLine(c, { x: s.x + nx * halfPx, y: s.y + ny * halfPx }, { x: e.x + nx * halfPx, y: e.y + ny * halfPx }, INK, 1.4);
+          strokeLine(c, { x: s.x - nx * halfPx, y: s.y - ny * halfPx }, { x: e.x - nx * halfPx, y: e.y - ny * halfPx }, INK, 1.4);
+          strokeLine(c, s, e, INK, 1);
+        } else {
+          // door: hinge, leaf, swing arc
+          const hinge = o.flipEnd ? e : s, free = o.flipEnd ? s : e;
+          const sideX = o.flipSide ? -nx : nx, sideY = o.flipSide ? -ny : ny;
+          const r = o.width * view.ppm;
+          const leaf = { x: hinge.x + sideX * r, y: hinge.y + sideY * r };
+          strokeLine(c, hinge, leaf, INK, 1.8);
+          let a0 = Math.atan2(free.y - hinge.y, free.x - hinge.x);
+          let a1 = Math.atan2(leaf.y - hinge.y, leaf.x - hinge.x);
+          let diff = a1 - a0; while (diff <= -Math.PI) diff += 2 * Math.PI; while (diff > Math.PI) diff -= 2 * Math.PI;
+          c.beginPath(); c.arc(hinge.x, hinge.y, r, a0, a0 + diff, diff < 0);
+          c.strokeStyle = INK; c.lineWidth = 1; c.stroke();
+        }
+      });
+
+      // auto wall length labels
+      if (S.showLen) {
+        M.walls.forEach(w => {
+          const len = dist(w.a, w.b); if (len <= 0.01) return;
+          const ax = wallAxes(w);
+          const mid = { x: (w.a.x + w.b.x) / 2, y: (w.a.y + w.b.y) / 2 };
+          const offM = w.thickness / 2 + 0.18;
+          const p = tw2s({ x: mid.x + ax.nx * offM, y: mid.y + ax.ny * offM });
+          tagText(c, p.x, p.y, fmtLen(len), LEN_INK, PAPER, fs * 0.92);
+        });
+      }
+
+      // labels
+      M.labels.forEach(l => {
+        const p = tw2s(l), px = l.size * view.ppm;
+        c.font = px + 'px Segoe UI, sans-serif';
+        c.fillStyle = LABEL_INK; c.textAlign = 'start'; c.textBaseline = 'top';
+        c.fillText(l.text, p.x, p.y);
+      });
+
+      // ---- screen-only overlays: selection + previews ----
+      if (!opt.handles) return;
+
+      // previews
+      if (act && act.type === 'wallchain' && hoverPt) {
+        const last = tw2s(act.pts[act.pts.length - 1]), cur = tw2s(hoverPt);
+        strokeLine(c, last, cur, ACCENT, 2);
+        tagText(c, (last.x + cur.x) / 2, (last.y + cur.y) / 2 - 14,
+          fmtLen(dist(act.pts[act.pts.length - 1], hoverPt)), ACCENT, PAPER, fs);
+      }
+      if (act && act.type === 'room' && hoverPt) {
+        const a = act.a, b = hoverPt;
+        const p = [tw2s({ x: a.x, y: a.y }), tw2s({ x: b.x, y: a.y }), tw2s({ x: b.x, y: b.y }), tw2s({ x: a.x, y: b.y })];
+        c.beginPath(); c.moveTo(p[0].x, p[0].y);
+        for (let i = 1; i < 4; i++) c.lineTo(p[i].x, p[i].y);
+        c.closePath(); c.strokeStyle = ACCENT; c.lineWidth = 2; c.stroke();
+        tagText(c, p[0].x + (p[1].x - p[0].x) / 2, p[0].y - 12, fmtLen(Math.abs(b.x - a.x)), ACCENT, PAPER, fs);
+        tagText(c, p[0].x - 4, p[0].y + (p[3].y - p[0].y) / 2, fmtLen(Math.abs(b.y - a.y)), ACCENT, PAPER, fs);
+      }
+      if (act && act.type === 'dim' && hoverPt) {
+        strokeLine(c, tw2s(act.a), tw2s(hoverPt), ACCENT, 1.5);
+        tagText(c, (tw2s(act.a).x + tw2s(hoverPt).x) / 2, (tw2s(act.a).y + tw2s(hoverPt).y) / 2 - 14,
+          fmtLen(dist(act.a, hoverPt)), ACCENT, PAPER, fs);
+      }
+
+      // snap indicator for drawing tools
+      if (hoverPt && ['wall', 'room', 'dim'].includes(tool)) {
+        const p = tw2s(hoverPt);
+        c.beginPath(); c.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        c.strokeStyle = ACCENT; c.lineWidth = 1.5; c.stroke();
+      }
+
+      // selection highlight + handles
+      const ent = resolveSel();
+      if (ent) {
+        if (sel.type === 'wall') {
+          const a = tw2s(ent.a), b = tw2s(ent.b), half = ent.thickness * V.ppm / 2 + 2;
+          const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l * half, ny = dx / l * half;
+          c.beginPath();
+          c.moveTo(a.x + nx, a.y + ny); c.lineTo(b.x + nx, b.y + ny); c.lineTo(b.x - nx, b.y - ny); c.lineTo(a.x - nx, a.y - ny);
+          c.closePath(); c.strokeStyle = ACCENT; c.lineWidth = 1.5; c.stroke();
+          handle(c, a); handle(c, b);
+        } else if (sel.type === 'opening') {
+          const w = wallById(ent.wallId);
+          if (w) {
+            const ax = wallAxes(w), off = clamp(ent.offset, 0, Math.max(0, ax.len - ent.width));
+            const s = tw2s({ x: w.a.x + ax.ux * off, y: w.a.y + ax.uy * off });
+            const e = tw2s({ x: w.a.x + ax.ux * (off + ent.width), y: w.a.y + ax.uy * (off + ent.width) });
+            const half = w.thickness * V.ppm / 2 + 3, nx = ax.nx * half, ny = ax.ny * half;
+            c.beginPath(); c.moveTo(s.x + nx, s.y + ny); c.lineTo(e.x + nx, e.y + ny);
+            c.lineTo(e.x - nx, e.y - ny); c.lineTo(s.x - nx, s.y - ny); c.closePath();
+            c.strokeStyle = ACCENT; c.lineWidth = 1.5; c.stroke();
+          }
+        } else if (sel.type === 'dimension') {
+          handle(c, tw2s(ent.a)); handle(c, tw2s(ent.b));
+        } else if (sel.type === 'label') {
+          const p = tw2s(ent), w = ent.text.length * ent.size * V.ppm * 0.55, h = ent.size * V.ppm;
+          c.strokeStyle = ACCENT; c.lineWidth = 1.5; c.setLineDash([4, 3]);
+          c.strokeRect(p.x - 3, p.y - 3, w + 6, h + 6); c.setLineDash([]);
+        }
+      }
+    }
+    function handle(c, p) {
+      c.fillStyle = '#fff'; c.strokeStyle = ACCENT; c.lineWidth = 1.5;
+      c.fillRect(p.x - 4, p.y - 4, 8, 8); c.strokeRect(p.x - 4, p.y - 4, 8, 8);
+    }
+
+    function render() {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw(ctx, V, { w: cssW, h: cssH, bg: PAPER, grid: S.showGrid !== false, handles: true });
+    }
+
+    // ===================== bounding box / fit / export =====================
+    function bboxAll(padM) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, any = false;
+      const ext = (x, y) => { any = true; if (x < minX) minX = x; if (y < minY) minY = y; if (x > maxX) maxX = x; if (y > maxY) maxY = y; };
+      M.walls.forEach(w => { const h = w.thickness / 2; ext(w.a.x - h, w.a.y - h); ext(w.a.x + h, w.a.y + h); ext(w.b.x - h, w.b.y - h); ext(w.b.x + h, w.b.y + h); });
+      M.dimensions.forEach(d => {
+        const len = dist(d.a, d.b) || 1, nx = -(d.b.y - d.a.y) / len, ny = (d.b.x - d.a.x) / len;
+        ext(d.a.x + nx * d.off, d.a.y + ny * d.off); ext(d.b.x + nx * d.off, d.b.y + ny * d.off); ext(d.a.x, d.a.y); ext(d.b.x, d.b.y);
+      });
+      M.labels.forEach(l => { ext(l.x, l.y); ext(l.x + l.text.length * l.size * 0.55, l.y + l.size); });
+      if (!any) return null;
+      return { minX: minX - padM, minY: minY - padM, maxX: maxX + padM, maxY: maxY + padM };
+    }
+    function fit() {
+      const bb = bboxAll(0.6); if (!bb) { V.ppm = 60; V.panX = 90; V.panY = 90; render(); updateStatus(); return; }
+      const wM = bb.maxX - bb.minX, hM = bb.maxY - bb.minY;
+      V.ppm = clamp(Math.min(cssW / wM, cssH / hM) * 0.92, 8, 400);
+      V.panX = cssW / 2 - (bb.minX + wM / 2) * V.ppm;
+      V.panY = cssH / 2 - (bb.minY + hM / 2) * V.ppm;
+      render(); updateStatus(); autosave();
+    }
+    function exportPNG() {
+      const bb = bboxAll(0.6);
+      let view, W, H;
+      if (bb) {
+        const wM = bb.maxX - bb.minX, hM = bb.maxY - bb.minY;
+        const ppm = clamp(1600 / Math.max(wM, hM), 24, 300);
+        W = Math.min(4000, Math.ceil(wM * ppm)); H = Math.min(4000, Math.ceil(hM * ppm));
+        view = { ppm, panX: -bb.minX * ppm, panY: -bb.minY * ppm };
+      } else {
+        W = cssW; H = cssH; view = V;
+      }
+      const off = document.createElement('canvas');
+      off.width = W; off.height = H;
+      const octx = off.getContext('2d');
+      draw(octx, view, { w: W, h: H, bg: PAPER, grid: false, handles: false });
+      off.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'floor-plan.png';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    }
+
+    // ===================== properties panel =====================
+    function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; }
+    function renderProps() {
+      const box = $('props'); box.innerHTML = '';
+      const ent = resolveSel();
+      if (!ent) {
+        let total = 0; M.walls.forEach(w => total += dist(w.a, w.b));
+        box.appendChild(el('<h2>Plan</h2>'));
+        const stats = el('<div></div>');
+        const add = (k, v) => stats.appendChild(el('<div class="summary-stat"><span>' + k + '</span><span>' + v + '</span></div>'));
+        add('Walls', M.walls.length); add('Doors', M.openings.filter(o => o.type === 'door').length);
+        add('Windows', M.openings.filter(o => o.type === 'window').length);
+        add('Dimensions', M.dimensions.length); add('Labels', M.labels.length);
+        add('Total wall length', fmtLen(total));
+        box.appendChild(stats);
+        box.appendChild(el('<h2 style="margin-top:18px">Tips</h2>'));
+        box.appendChild(el('<div class="hint"><b>Wall</b>: click corners, click start or press Esc to finish.<br>' +
+          '<b>Room</b>: drag a rectangle.<br><b>Door/Window</b>: click on a wall.<br>' +
+          '<b>Dim</b>: click two points.<br><b>Select</b> a wall/opening to type exact sizes.<br>' +
+          'Wheel = zoom · Space-drag = pan · Del = delete.</div>'));
+        return;
+      }
+      const numField = (label, value, onSet) => {
+        const f = el('<div class="field"><label>' + label + '</label><input type="text"></div>');
+        const inp = f.querySelector('input');
+        inp.value = value;   // set as property — values like 11' 6" contain quotes that break HTML attrs
+        const commit = () => { const v = parseLen(inp.value); if (v !== null) { pushHistory(); onSet(v); afterChange(); } else { inp.value = value; } };
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+        inp.addEventListener('blur', commit);
+        return f;
+      };
+      const btn = (label, cls, fn) => { const b = el('<button class="' + cls + '" style="width:100%;margin-top:4px">' + label + '</button>'); b.addEventListener('click', fn); return b; };
+
+      if (sel.type === 'wall') {
+        box.appendChild(el('<h2>Wall</h2>'));
+        box.appendChild(numField('Length', fmtLen(dist(ent.a, ent.b)), v => {
+          const len = dist(ent.a, ent.b) || 1, ux = (ent.b.x - ent.a.x) / len, uy = (ent.b.y - ent.a.y) / len;
+          ent.b = { x: ent.a.x + ux * Math.max(0.01, v), y: ent.a.y + uy * Math.max(0.01, v) };
+        }));
+        box.appendChild(numField('Thickness', fmtLen(ent.thickness), v => { ent.thickness = Math.max(0.02, v); }));
+        const ang = Math.atan2(ent.b.y - ent.a.y, ent.b.x - ent.a.x) * 180 / Math.PI;
+        box.appendChild(el('<div class="field"><label>Angle</label><div class="readout">' + ang.toFixed(1) + '°</div></div>'));
+        box.appendChild(btn('Delete wall', 'danger', deleteSel));
+      } else if (sel.type === 'opening') {
+        const w = wallById(ent.wallId), ax = w ? wallAxes(w) : { len: 0 };
+        box.appendChild(el('<h2>' + (ent.type === 'door' ? 'Door' : 'Window') + '</h2>'));
+        box.appendChild(numField('Width', fmtLen(ent.width), v => { ent.width = clamp(v, 0.1, Math.max(0.1, ax.len)); ent.offset = clamp(ent.offset, 0, Math.max(0, ax.len - ent.width)); }));
+        box.appendChild(numField('Offset from wall start', fmtLen(ent.offset), v => { ent.offset = clamp(v, 0, Math.max(0, ax.len - ent.width)); }));
+        box.appendChild(el('<div class="field"><label>Wall length</label><div class="readout">' + fmtLen(ax.len) + '</div></div>'));
+        if (ent.type === 'door') {
+          const row = el('<div class="row"></div>');
+          row.appendChild(btn('Flip hinge', '', () => { pushHistory(); ent.flipEnd = !ent.flipEnd; afterChange(); }));
+          row.appendChild(btn('Flip swing', '', () => { pushHistory(); ent.flipSide = !ent.flipSide; afterChange(); }));
+          box.appendChild(row);
+        }
+        box.appendChild(btn('Delete', 'danger', deleteSel));
+      } else if (sel.type === 'dimension') {
+        box.appendChild(el('<h2>Dimension</h2>'));
+        box.appendChild(el('<div class="field"><label>Measured length</label><div class="readout">' + fmtLen(dist(ent.a, ent.b)) + '</div></div>'));
+        box.appendChild(numField('Line offset', fmtLen(ent.off), v => { ent.off = v; }));
+        box.appendChild(btn('Delete dimension', 'danger', deleteSel));
+      } else if (sel.type === 'label') {
+        box.appendChild(el('<h2>Label</h2>'));
+        const f = el('<div class="field"><label>Text</label><textarea></textarea></div>');
+        const ta = f.querySelector('textarea');
+        ta.value = ent.text;   // set as property to avoid HTML-escaping issues
+        ta.addEventListener('input', () => { ent.text = ta.value; render(); autosave(); });
+        ta.addEventListener('blur', () => pushHistory());
+        box.appendChild(f);
+        box.appendChild(numField('Text height', fmtLen(ent.size), v => { ent.size = Math.max(0.05, v); }));
+        box.appendChild(btn('Delete label', 'danger', deleteSel));
+        if (act && act.justCreatedLabel) { ta.focus(); ta.select(); act = null; }
+      }
+    }
+
+    // ===================== pointer interaction =====================
+    function getMouse(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+
+    cv.addEventListener('pointerdown', e => {
+      cv.setPointerCapture(e.pointerId);
+      const m = getMouse(e); let wld = s2w(m);
+
+      // panning (pan tool / middle button / space)
+      if (tool === 'pan' || e.button === 1 || spaceDown) {
+        act = { type: 'pan', sx: e.clientX, sy: e.clientY, px: V.panX, py: V.panY };
+        return;
+      }
+      if (e.button !== 0) return;
+
+      if (tool === 'select') {
+        const h = handleHit(wld);
+        if (h) { act = { type: 'handle', which: h }; return; }
+        const hit = hitTest(wld);
+        sel = hit; renderProps();
+        if (hit) {
+          const ent = resolveSel();
+          act = { type: 'move', grab: wld, orig: JSON.parse(JSON.stringify(ent)) };
+        }
+        render();
+        return;
+      }
+
+      if (tool === 'wall') {
+        let p = snap(wld, true);
+        if (act && act.type === 'wallchain') {
+          const last = act.pts[act.pts.length - 1];
+          if (shiftDown) p = snap(ortho(last, wld), true);
+          // click near start -> close & finish
+          if (dist(p, act.pts[0]) < (TOL_PX * 1.6) / V.ppm && act.pts.length > 1) {
+            pushHistory(); addWall(last, act.pts[0]); act = null; afterChange(); return;
+          }
+          pushHistory(); addWall(last, p); act.pts.push(p); afterChange();
+        } else {
+          act = { type: 'wallchain', pts: [p] };
+        }
+        return;
+      }
+
+      if (tool === 'room') { act = { type: 'room', a: snap(wld, true) }; return; }
+
+      if (tool === 'dim') {
+        const p = snap(wld, true);
+        if (act && act.type === 'dim') { pushHistory(); const d = addDimension(act.a, p); act = null; sel = { type: 'dimension', id: d.id }; afterChange(); }
+        else { act = { type: 'dim', a: p }; }
+        return;
+      }
+
+      if (tool === 'door' || tool === 'window') {
+        const w = nearestWall(wld);
+        if (!w) { flash('Click on a wall to place a ' + tool); return; }
+        const pr = projectOnWall(w, wld);
+        pushHistory(); const o = addOpening(w, tool, pr.offset);
+        sel = { type: 'opening', id: o.id }; afterChange();
+        return;
+      }
+
+      if (tool === 'label') {
+        pushHistory(); const l = addLabel(wld, 'Label');
+        sel = { type: 'label', id: l.id }; tool = 'select'; setActiveTool();
+        act = { justCreatedLabel: true }; afterChange();
+        return;
+      }
+    });
+
+    cv.addEventListener('pointermove', e => {
+      const m = getMouse(e); const wld = s2w(m);
+      hoverPt = snap(wld, ['wall', 'room', 'dim'].includes(tool));
+      if (act && act.type === 'wallchain' && shiftDown) hoverPt = snap(ortho(act.pts[act.pts.length - 1], wld), true);
+
+      if (act && act.type === 'pan') {
+        V.panX = act.px + (e.clientX - act.sx); V.panY = act.py + (e.clientY - act.sy);
+        render(); return;
+      }
+      if (act && (act.type === 'move' || act.type === 'handle')) {
+        if (!act.committed) { pushHistory(); act.committed = true; }
+        const ent = resolveSel(); if (!ent) return;
+        if (act.type === 'handle') {
+          const p = snap(wld, true);
+          if (act.which === 'a') ent.a = p; else ent.b = p;
+        } else if (sel.type === 'wall') {
+          const np = snap({ x: act.orig.a.x + (wld.x - act.grab.x), y: act.orig.a.y + (wld.y - act.grab.y) });
+          const dx = np.x - act.orig.a.x, dy = np.y - act.orig.a.y;
+          ent.a = { x: act.orig.a.x + dx, y: act.orig.a.y + dy };
+          ent.b = { x: act.orig.b.x + dx, y: act.orig.b.y + dy };
+        } else if (sel.type === 'dimension') {
+          const np = snap({ x: act.orig.a.x + (wld.x - act.grab.x), y: act.orig.a.y + (wld.y - act.grab.y) });
+          const dx = np.x - act.orig.a.x, dy = np.y - act.orig.a.y;
+          ent.a = { x: act.orig.a.x + dx, y: act.orig.a.y + dy };
+          ent.b = { x: act.orig.b.x + dx, y: act.orig.b.y + dy };
+        } else if (sel.type === 'label') {
+          const np = snap({ x: act.orig.x + (wld.x - act.grab.x), y: act.orig.y + (wld.y - act.grab.y) });
+          ent.x = np.x; ent.y = np.y;
+        } else if (sel.type === 'opening') {
+          const w = wallById(ent.wallId); if (w) { const pr = projectOnWall(w, wld); ent.offset = clamp(pr.offset - ent.width / 2, 0, Math.max(0, pr.len - ent.width)); }
+        }
+        render(); return;
+      }
+      // idle preview redraw for drawing tools
+      if (act || ['wall', 'room', 'dim'].includes(tool)) render();
+      updateStatus(wld);
+    });
+
+    cv.addEventListener('pointerup', e => {
+      if (act && (act.type === 'pan')) { act = null; autosave(); return; }
+      if (act && (act.type === 'move' || act.type === 'handle')) {
+        const moved = act.committed; act = null;
+        if (moved) afterChange(); else { renderProps(); }
+        return;
+      }
+      if (act && act.type === 'room') {
+        const a = act.a, b = hoverPt || s2w(getMouse(e));
+        act = null;
+        if (Math.abs(b.x - a.x) > 0.05 && Math.abs(b.y - a.y) > 0.05) {
+          pushHistory();
+          const c1 = { x: a.x, y: a.y }, c2 = { x: b.x, y: a.y }, c3 = { x: b.x, y: b.y }, c4 = { x: a.x, y: b.y };
+          addWall(c1, c2); addWall(c2, c3); addWall(c3, c4); addWall(c4, c1);
+          afterChange();
+        }
+        return;
+      }
+    });
+
+    cv.addEventListener('dblclick', () => { if (act && act.type === 'wallchain') { act = null; render(); } });
+
+    cv.addEventListener('wheel', e => {
+      e.preventDefault();
+      const m = getMouse(e), w = s2w(m);
+      V.ppm = clamp(V.ppm * (e.deltaY < 0 ? 1.12 : 1 / 1.12), 8, 400);
+      V.panX = m.x - w.x * V.ppm; V.panY = m.y - w.y * V.ppm;
+      render(); updateStatus(); autosave();
+    }, { passive: false });
+
+    // ===================== status bar =====================
+    let flashMsg = '', flashTimer = null;
+    function flash(msg) { flashMsg = msg; updateStatus(); if (flashTimer) clearTimeout(flashTimer); flashTimer = setTimeout(() => { flashMsg = ''; updateStatus(); }, 2200); }
+    function updateStatus(wld) {
+      const parts = [];
+      parts.push('Scale: <b>1 grid = ' + fmtLen(S.gridM) + '</b>');
+      parts.push('Zoom: <b>' + Math.round(V.ppm / 0.6) + '%</b>');
+      parts.push('Snap: <b>' + (S.snap ? 'on' : 'off') + '</b>');
+      if (wld) parts.push('x <b>' + fmtLen(wld.x) + '</b>  y <b>' + fmtLen(wld.y) + '</b>');
+      if (flashMsg) parts.push('<b style="color:var(--accent)">' + flashMsg + '</b>');
+      $('status').innerHTML = parts.join('');
+    }
+
+    // ===================== tools / toolbar =====================
+    function setActiveTool() {
+      document.querySelectorAll('.tool').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
+      cv.style.cursor = (tool === 'pan') ? 'grab' : (tool === 'select' ? 'default' : 'crosshair');
+    }
+    function setTool(t) { if (act && act.type === 'wallchain') act = null; tool = t; setActiveTool(); render(); }
+    document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
+
+    // ===================== header controls =====================
+    function syncUnitUI() {
+      $('unitSel').value = S.unitSystem;
+      $('gridUnit').textContent = S.unitSystem === 'metric' ? 'm' : 'ft';
+      $('gridInput').value = (S.unitSystem === 'metric' ? S.gridM : S.gridM / FT).toFixed(2);
+      $('snapChk').checked = S.snap; $('lenChk').checked = S.showLen;
+    }
+    $('unitSel').addEventListener('change', () => { S.unitSystem = $('unitSel').value; syncUnitUI(); afterChange(); });
+    $('gridInput').addEventListener('change', () => {
+      let v = parseFloat($('gridInput').value);
+      if (isFinite(v) && v > 0) { S.gridM = S.unitSystem === 'metric' ? v : v * FT; }
+      syncUnitUI(); afterChange();
+    });
+    $('snapChk').addEventListener('change', () => { S.snap = $('snapChk').checked; autosave(); });
+    $('lenChk').addEventListener('change', () => { S.showLen = $('lenChk').checked; render(); autosave(); });
+
+    $('zoomIn').addEventListener('click', () => zoomAt(1.2));
+    $('zoomOut').addEventListener('click', () => zoomAt(1 / 1.2));
+    function zoomAt(f) {
+      const cx = cssW / 2, cy = cssH / 2, w = s2w({ x: cx, y: cy });
+      V.ppm = clamp(V.ppm * f, 8, 400); V.panX = cx - w.x * V.ppm; V.panY = cy - w.y * V.ppm;
+      render(); updateStatus(); autosave();
+    }
+    $('fitBtn').addEventListener('click', fit);
+    $('undoBtn').addEventListener('click', undo);
+    $('redoBtn').addEventListener('click', redo);
+    $('exportPng').addEventListener('click', exportPNG);
+    $('clearBtn').addEventListener('click', () => {
+      if (!M.walls.length && !M.labels.length && !M.dimensions.length) return;
+      if (confirm('Clear the entire plan? This cannot be undone except with Undo.')) {
+        pushHistory(); M = { walls: [], openings: [], dimensions: [], labels: [] }; sel = null; afterChange();
+      }
+    });
+    $('saveJson').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify({ M, S }, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = 'floor-plan.json';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    });
+    $('openJson').addEventListener('click', () => $('fileInput').click());
+    $('fileInput').addEventListener('change', e => {
+      const file = e.target.files[0]; if (!file) return;
+      const r = new FileReader();
+      r.onload = () => {
+        try {
+          const d = JSON.parse(r.result);
+          if (d.M) { pushHistory(); M = d.M; if (d.S) S = Object.assign(S, d.S); sel = null; recomputeNextId(); syncUnitUI(); fit(); afterChange(); flash('Plan loaded'); }
+        } catch (err) { flash('Could not read file'); }
+      };
+      r.readAsText(file); e.target.value = '';
+    });
+
+    // ===================== keyboard =====================
+    window.addEventListener('keydown', e => {
+      const typing = /^(input|textarea|select)$/i.test((e.target.tagName || ''));
+      if (e.key === ' ' && !typing) { spaceDown = true; cv.style.cursor = 'grab'; }
+      if (e.key === 'Shift') shiftDown = true;
+      if (typing) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
+      if (e.key === 'Delete' || e.key === 'Backspace') { if (sel) { e.preventDefault(); deleteSel(); } return; }
+      if (e.key === 'Escape') { if (act && act.type === 'wallchain') { act = null; render(); } else if (act && act.type === 'dim') { act = null; render(); } else { sel = null; afterChange(); } return; }
+      const map = { v: 'select', h: 'pan', w: 'wall', r: 'room', d: 'door', n: 'window', m: 'dim', t: 'label' };
+      if (map[e.key.toLowerCase()]) setTool(map[e.key.toLowerCase()]);
+    });
+    window.addEventListener('keyup', e => {
+      if (e.key === ' ') { spaceDown = false; setActiveTool(); }
+      if (e.key === 'Shift') shiftDown = false;
+    });
+
+    // ===================== resize =====================
+    function resize() {
+      dpr = window.devicePixelRatio || 1;
+      cssW = wrap.clientWidth; cssH = wrap.clientHeight;
+      cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
+      render();
+    }
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(wrap);
+    window.addEventListener('resize', resize);
+
+    // ===================== init =====================
+    function seedDemo() {
+      // a small starter room so the canvas isn't empty on first run
+      const a = { x: 0, y: 0 }, b = { x: 5, y: 0 }, c = { x: 5, y: 4 }, d = { x: 0, y: 4 };
+      const w1 = addWall(a, b), w2 = addWall(b, c), w3 = addWall(c, d), w4 = addWall(d, a);
+      addOpening(w1, 'door', 1.4); addOpening(w3, 'window', 2.5);
+      addLabel({ x: 1.6, y: 1.8 }, 'Living Room');
+    }
+    if (!loadSaved()) { seedDemo(); }
+    syncUnitUI(); setActiveTool();
+    resize();
+    fit();
+    renderProps(); updateStatus();
+  })();
+  </script>
+</body>
+</html>

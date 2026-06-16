@@ -10,6 +10,11 @@
 #       summary: One-line description shown beneath the title on the card
 
 apps:
+  - file: floor-plan-designer.html
+    title: Floor Plan Designer
+    emoji: "📐"
+    summary: Draw walls, doors, and windows to scale, dimension measurements, and export the plan as a PNG.
+
   - file: Recipt Calc.html
     title: Receipt Calculator
     emoji: "📋"
