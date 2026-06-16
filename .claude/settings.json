@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -c '^```' /Users/nic/Documents/GitHub/QuicApps/README.md)",
+      "Bash(awk '/### 4\\\\. Copy-paste starter template/{found=1} found && /^```html$/ && !cap {cap=1; next} cap && /^```$/{exit} cap{print}' /Users/nic/Documents/GitHub/QuicApps/README.md)",
+      "Read(//tmp/**)",
+      "Bash(awk '/<script>/{f=1;next} /<\\\\/script>/{f=0} f' /tmp/qa-template.html)",
+      "Bash(node --check /tmp/qa-template.js)",
+      "Bash(cp index.html /tmp/idx.before)",
+      "Bash(sh build-index.sh)",
+      "Bash(cp /tmp/idx.before index.html)"
+    ]
+  }
+}
